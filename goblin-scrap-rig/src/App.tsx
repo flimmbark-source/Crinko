@@ -347,6 +347,7 @@ function App() {
                   onBaseHit={handleBaseHit}
                   onEnemyKilled={handleEnemyKilled}
                   projectiles={projectiles}
+                  turrets={placedModules}
                   isActive={phase === 'combat'}
                 />
               </div>

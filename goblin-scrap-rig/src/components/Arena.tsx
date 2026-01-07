@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import type { Enemy, Projectile } from '../types';
+import type { Enemy, Projectile, ModuleInstance } from '../types';
 import { ENEMY_TYPES, WAVE_CONFIGS } from '../data/enemies';
 
 interface ArenaProps {
@@ -7,6 +7,7 @@ interface ArenaProps {
   onBaseHit: (damage: number) => void;
   onEnemyKilled: (enemyId: string) => void;
   projectiles: Projectile[];
+  turrets: ModuleInstance[];
   isActive: boolean;
 }
 
@@ -15,6 +16,7 @@ export const Arena: React.FC<ArenaProps> = ({
   onBaseHit,
   onEnemyKilled,
   projectiles,
+  turrets,
   isActive,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,6 +164,35 @@ export const Arena: React.FC<ArenaProps> = ({
     ctx.font = '12px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('BASE', BASE_X, BASE_Y + 4);
+
+    // Draw turrets
+    turrets.forEach((turret) => {
+      if (turret.kind !== 'spender' || turret.gridX === undefined || turret.gridY === undefined) return;
+
+      // Map grid position to arena position (distribute around the base)
+      const gridIndex = turret.gridY * 5 + turret.gridX;
+      const angle = (gridIndex / 25) * Math.PI * 2;
+      const radius = 100;
+      const turretX = BASE_X + Math.cos(angle) * radius;
+      const turretY = BASE_Y + Math.sin(angle) * radius;
+
+      // Draw turret body
+      ctx.fillStyle = turret.jammed ? '#e63946' : '#9a7f2a';
+      ctx.beginPath();
+      ctx.arc(turretX, turretY, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw turret icon
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(turret.art.icon, turretX, turretY);
+
+      // Store turret position for combat system
+      (turret as any).__arenaX = turretX;
+      (turret as any).__arenaY = turretY;
+    });
 
     // Draw enemies
     enemies.forEach((enemy) => {

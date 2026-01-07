@@ -99,9 +99,9 @@ export function runCombatTick(state: CombatState, caps: ResourceCaps): CombatRes
     const canFire = newResources.ammo >= turret.stats.ammoPerShot && enemies.length > 0;
 
     if (canFire) {
-      // Find nearest enemy
-      const turretX = 400; // Center of arena for now
-      const turretY = 500; // Near base
+      // Get turret position from arena (set during render)
+      const turretX = (turret as any).__arenaX || 300;
+      const turretY = (turret as any).__arenaY || 400;
 
       let nearestEnemy: Enemy | null = null;
       let nearestDistance = Infinity;
