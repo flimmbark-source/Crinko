@@ -71,11 +71,16 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
       fireRate: 2, // 2 shots/sec
       ammoPerShot: 1,
       heatPerAction: 1,
-      range: 150,
+      range: 250, // Extended range for basic weapon
     },
     art: {
       icon: '🔫',
       colorHint: '#9ca3af',
+    },
+    weaponConfig: {
+      visualType: 'hitscan' as const,
+      color: '#4ade80', // Green hitscan beam
+      speed: 0, // Instant hit
     },
   },
   {
@@ -94,6 +99,12 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
       icon: '💥',
       colorHint: '#60a5fa',
     },
+    weaponConfig: {
+      visualType: 'explosive' as const,
+      color: '#f97316', // Orange explosive projectile
+      speed: 250, // Slower heavy projectile
+      aoeRadius: 40, // Explosion radius
+    },
   },
   {
     id: 'shrapnel-mortar',
@@ -110,6 +121,12 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
     art: {
       icon: '🎆',
       colorHint: '#a855f7',
+    },
+    weaponConfig: {
+      visualType: 'arc' as const,
+      color: '#a855f7', // Purple arcing projectile
+      speed: 300,
+      piercing: true, // Shrapnel pierces through enemies
     },
   },
 

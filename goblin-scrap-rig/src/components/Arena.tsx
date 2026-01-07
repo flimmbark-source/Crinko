@@ -213,25 +213,113 @@ export const Arena: React.FC<ArenaProps> = ({
       ctx.fillRect(enemy.x - 15, enemy.y - enemyDef.size - 8, 30 * hpPercent, 4);
     });
 
-    // Draw projectiles
+    // Draw projectiles with different visuals based on type
     projectiles.forEach((proj) => {
-      ctx.fillStyle = '#f4cf57';
-      ctx.beginPath();
-      ctx.arc(proj.x, proj.y, 4, 0, Math.PI * 2);
-      ctx.fill();
+      const color = proj.color || '#f4cf57';
 
-      // Trail
-      ctx.strokeStyle = 'rgba(244, 207, 87, 0.3)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(proj.x, proj.y);
-      const dx = proj.targetX - proj.x;
-      const dy = proj.targetY - proj.y;
-      const len = Math.sqrt(dx * dx + dy * dy);
-      const trailX = proj.x - (dx / len) * 10;
-      const trailY = proj.y - (dy / len) * 10;
-      ctx.lineTo(trailX, trailY);
-      ctx.stroke();
+      if (proj.visualType === 'hitscan') {
+        // Hitscan beam - bright line from turret to target
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.moveTo(proj.x, proj.y);
+        ctx.lineTo(proj.targetX, proj.targetY);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Impact flash
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(proj.targetX, proj.targetY, 8, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (proj.visualType === 'explosive') {
+        // Explosive projectile - larger with glow
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Thick trail
+        ctx.strokeStyle = `${color}88`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(proj.x, proj.y);
+        const dx = proj.targetX - proj.x;
+        const dy = proj.targetY - proj.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          const trailX = proj.x - (dx / len) * 15;
+          const trailY = proj.y - (dy / len) * 15;
+          ctx.lineTo(trailX, trailY);
+          ctx.stroke();
+        }
+
+        // Draw AoE indicator at target
+        if (proj.aoeRadius) {
+          ctx.strokeStyle = `${color}44`;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.arc(proj.targetX, proj.targetY, proj.aoeRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      } else if (proj.visualType === 'arc') {
+        // Arc projectile - glowing with particle trail
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Multi-segment trail for arc effect
+        ctx.strokeStyle = `${color}aa`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(proj.x, proj.y);
+        const dx = proj.targetX - proj.x;
+        const dy = proj.targetY - proj.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          for (let i = 1; i <= 3; i++) {
+            const trailX = proj.x - (dx / len) * (i * 8);
+            const trailY = proj.y - (dy / len) * (i * 8);
+            const alpha = Math.max(0.2, 1 - i * 0.3);
+            ctx.strokeStyle = `${color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+            ctx.beginPath();
+            ctx.arc(trailX, trailY, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      } else {
+        // Standard projectile
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Trail
+        ctx.strokeStyle = `${color}55`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(proj.x, proj.y);
+        const dx = proj.targetX - proj.x;
+        const dy = proj.targetY - proj.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          const trailX = proj.x - (dx / len) * 10;
+          const trailY = proj.y - (dy / len) * 10;
+          ctx.lineTo(trailX, trailY);
+          ctx.stroke();
+        }
+      }
     });
   };
 

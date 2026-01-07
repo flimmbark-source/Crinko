@@ -47,6 +47,14 @@ export interface AffixInstance {
   roll: number;
 }
 
+export interface WeaponConfig {
+  visualType: WeaponVisualType;
+  color: string;
+  speed: number;
+  aoeRadius?: number;
+  piercing?: boolean;
+}
+
 export interface ModuleDef {
   id: string;
   name: string;
@@ -59,6 +67,7 @@ export interface ModuleDef {
     icon: string;
     colorHint: string;
   };
+  weaponConfig?: WeaponConfig;
 }
 
 export interface ModuleInstance extends ModuleDef {
@@ -97,6 +106,8 @@ export interface Enemy {
   alive: boolean;
 }
 
+export type WeaponVisualType = 'hitscan' | 'projectile' | 'arc' | 'explosive';
+
 export interface Projectile {
   id: string;
   x: number;
@@ -106,6 +117,12 @@ export interface Projectile {
   damage: number;
   turretId: string;
   speed: number;
+  weaponId: string; // weapon type identifier
+  visualType: WeaponVisualType;
+  color?: string; // custom projectile color
+  aoeRadius?: number; // explosion radius
+  piercing?: boolean; // can hit multiple enemies
+  startTime?: number; // for hitscan beam duration
 }
 
 export interface GameEvent {

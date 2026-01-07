@@ -48,34 +48,97 @@ export function runCombatTick(state: CombatState, caps: ResourceCaps): CombatRes
   const updatedProjectiles: Projectile[] = [];
 
   for (const proj of projectiles) {
+    // Handle hitscan beams (visual only, damage already applied)
+    if (proj.visualType === 'hitscan') {
+      // Remove beam after 100ms
+      if (proj.startTime && Date.now() - proj.startTime < 100) {
+        updatedProjectiles.push(proj);
+      }
+      continue;
+    }
+
     // Move projectile toward target
     const dx = proj.targetX - proj.x;
     const dy = proj.targetY - proj.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance < proj.speed * deltaTime) {
-      // Hit! Find enemy at target location
-      const hitEnemy = enemies.find((e) => {
-        const ex = e.x - proj.targetX;
-        const ey = e.y - proj.targetY;
-        return Math.sqrt(ex * ex + ey * ey) < 20 && e.alive;
-      });
+      // Hit! Handle different projectile types
+      if (proj.aoeRadius) {
+        // AoE explosion - damage all enemies in radius
+        enemies.forEach((e) => {
+          if (!e.alive) return;
+          const ex = e.x - proj.targetX;
+          const ey = e.y - proj.targetY;
+          const dist = Math.sqrt(ex * ex + ey * ey);
 
-      if (hitEnemy) {
-        hitEnemy.hp -= proj.damage;
+          if (dist < proj.aoeRadius!) {
+            e.hp -= proj.damage;
 
-        if (hitEnemy.hp <= 0) {
-          hitEnemy.alive = false;
-        }
+            if (e.hp <= 0) {
+              e.alive = false;
+            }
 
-        events.push({
-          type: 'Hit',
-          message: `Hit for ${proj.damage} damage`,
-          data: { damage: proj.damage, turretId: proj.turretId, enemyId: hitEnemy.id },
+            events.push({
+              type: 'Hit',
+              message: `💥 Explosion hit for ${proj.damage} damage`,
+              data: { damage: proj.damage, turretId: proj.turretId, enemyId: e.id },
+            });
+          }
         });
 
         // Update enemies in window
         setEnemies([...enemies]);
+      } else if (proj.piercing) {
+        // Piercing - damage all enemies along the path
+        enemies.forEach((e) => {
+          if (!e.alive) return;
+          const ex = e.x - proj.x;
+          const ey = e.y - proj.y;
+          const distToEnemy = Math.sqrt(ex * ex + ey * ey);
+
+          // Check if enemy is close to projectile path
+          if (distToEnemy < 25) {
+            e.hp -= proj.damage;
+
+            if (e.hp <= 0) {
+              e.alive = false;
+            }
+
+            events.push({
+              type: 'Hit',
+              message: `⚡ Piercing hit for ${proj.damage} damage`,
+              data: { damage: proj.damage, turretId: proj.turretId, enemyId: e.id },
+            });
+          }
+        });
+
+        // Update enemies in window
+        setEnemies([...enemies]);
+      } else {
+        // Standard projectile - single target
+        const hitEnemy = enemies.find((e) => {
+          const ex = e.x - proj.targetX;
+          const ey = e.y - proj.targetY;
+          return Math.sqrt(ex * ex + ey * ey) < 20 && e.alive;
+        });
+
+        if (hitEnemy) {
+          hitEnemy.hp -= proj.damage;
+
+          if (hitEnemy.hp <= 0) {
+            hitEnemy.alive = false;
+          }
+
+          events.push({
+            type: 'Hit',
+            message: `Hit for ${proj.damage} damage`,
+            data: { damage: proj.damage, turretId: proj.turretId, enemyId: hitEnemy.id },
+          });
+
+          // Update enemies in window
+          setEnemies([...enemies]);
+        }
       }
     } else {
       // Continue moving
@@ -130,19 +193,68 @@ export function runCombatTick(state: CombatState, caps: ResourceCaps): CombatRes
           );
         }
 
-        // Create projectile
-        const newProj: Projectile = {
-          id: `proj-${Date.now()}-${Math.random()}`,
-          x: turretX,
-          y: turretY,
-          targetX: nearestEnemy.x,
-          targetY: nearestEnemy.y,
-          damage: turret.stats.damage,
-          turretId: turret.instanceId,
-          speed: 400, // pixels per second
+        // Get weapon config or use defaults
+        const weaponConfig = turret.weaponConfig || {
+          visualType: 'projectile' as const,
+          color: '#f4cf57',
+          speed: 400,
         };
 
-        updatedProjectiles.push(newProj);
+        // Handle hitscan weapons (instant hit)
+        if (weaponConfig.visualType === 'hitscan') {
+          // Instant damage
+          nearestEnemy.hp -= turret.stats.damage;
+
+          if (nearestEnemy.hp <= 0) {
+            nearestEnemy.alive = false;
+          }
+
+          // Create visual beam (short-lived projectile)
+          const beamProj: Projectile = {
+            id: `proj-${Date.now()}-${Math.random()}`,
+            x: turretX,
+            y: turretY,
+            targetX: nearestEnemy.x,
+            targetY: nearestEnemy.y,
+            damage: turret.stats.damage,
+            turretId: turret.instanceId,
+            speed: 0,
+            weaponId: turret.id,
+            visualType: 'hitscan',
+            color: weaponConfig.color,
+            startTime: Date.now(),
+          };
+
+          updatedProjectiles.push(beamProj);
+
+          events.push({
+            type: 'Hit',
+            message: `${turret.name} hit for ${turret.stats.damage} damage`,
+            data: { damage: turret.stats.damage, turretId: turret.instanceId, enemyId: nearestEnemy.id },
+          });
+
+          // Update enemies
+          setEnemies([...enemies]);
+        } else {
+          // Create projectile for projectile-based weapons
+          const newProj: Projectile = {
+            id: `proj-${Date.now()}-${Math.random()}`,
+            x: turretX,
+            y: turretY,
+            targetX: nearestEnemy.x,
+            targetY: nearestEnemy.y,
+            damage: turret.stats.damage,
+            turretId: turret.instanceId,
+            speed: weaponConfig.speed,
+            weaponId: turret.id,
+            visualType: weaponConfig.visualType,
+            color: weaponConfig.color,
+            aoeRadius: weaponConfig.aoeRadius,
+            piercing: weaponConfig.piercing,
+          };
+
+          updatedProjectiles.push(newProj);
+        }
 
         events.push({
           type: 'ShotFired',
