@@ -15,7 +15,6 @@ export const RigGrid: React.FC<RigGridProps> = ({
   onModuleRemoved,
   onModuleMoved,
 }) => {
-  const [draggedModule, setDraggedModule] = useState<ModuleInstance | null>(null);
   const GRID_SIZE = 5;
 
   const getModuleAtPosition = (x: number, y: number): ModuleInstance | undefined => {
@@ -26,9 +25,16 @@ export const RigGrid: React.FC<RigGridProps> = ({
     e.preventDefault();
   };
 
+  const handleDragStart = (e: React.DragEvent, module: ModuleInstance) => {
+    e.dataTransfer.setData('module', JSON.stringify(module));
+  };
+
   const handleDrop = (e: React.DragEvent, x: number, y: number) => {
     e.preventDefault();
-    if (!draggedModule) return;
+    const moduleData = e.dataTransfer.getData('module');
+    if (!moduleData) return;
+
+    const draggedModule: ModuleInstance = JSON.parse(moduleData);
 
     const existingModule = getModuleAtPosition(x, y);
     if (existingModule) {
@@ -43,8 +49,6 @@ export const RigGrid: React.FC<RigGridProps> = ({
       // Placing new module from inventory
       onModulePlaced(draggedModule, x, y);
     }
-
-    setDraggedModule(null);
   };
 
   const handleCellClick = (x: number, y: number) => {
@@ -90,7 +94,7 @@ export const RigGrid: React.FC<RigGridProps> = ({
                   <div
                     className="module-in-grid"
                     draggable
-                    onDragStart={() => setDraggedModule(module)}
+                    onDragStart={(e) => handleDragStart(e, module)}
                     style={{
                       borderColor: getRarityColor(module.rarity),
                     }}

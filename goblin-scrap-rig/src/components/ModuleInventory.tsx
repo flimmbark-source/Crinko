@@ -4,15 +4,16 @@ import './ModuleInventory.css';
 
 interface ModuleInventoryProps {
   modules: ModuleInstance[];
-  onModuleDragStart: (module: ModuleInstance) => void;
   onSalvage: (moduleId: string) => void;
 }
 
 export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
   modules,
-  onModuleDragStart,
   onSalvage,
 }) => {
+  const handleDragStart = (e: React.DragEvent, module: ModuleInstance) => {
+    e.dataTransfer.setData('module', JSON.stringify(module));
+  };
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case 'common':
@@ -46,7 +47,7 @@ export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
           key={module.instanceId}
           className="inventory-module"
           draggable
-          onDragStart={() => onModuleDragStart(module)}
+          onDragStart={(e) => handleDragStart(e, module)}
           style={{
             borderColor: getRarityColor(module.rarity),
           }}

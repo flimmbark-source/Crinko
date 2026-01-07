@@ -328,7 +328,6 @@ function App() {
                 <h3>Inventory ({inventoryModules.length})</h3>
                 <ModuleInventory
                   modules={inventoryModules}
-                  onModuleDragStart={() => {}}
                   onSalvage={handleModuleSalvaged}
                 />
               </div>

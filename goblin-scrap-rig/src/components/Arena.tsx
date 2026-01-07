@@ -21,8 +21,8 @@ export const Arena: React.FC<ArenaProps> = ({
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const requestIdRef = useRef<number>(0);
 
-  const CANVAS_WIDTH = 800;
-  const CANVAS_HEIGHT = 600;
+  const CANVAS_WIDTH = 600;
+  const CANVAS_HEIGHT = 450;
   const BASE_X = CANVAS_WIDTH / 2;
   const BASE_Y = CANVAS_HEIGHT - 30;
 
