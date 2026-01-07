@@ -1,0 +1,201 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.phase-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-panel);
+  border: 2px solid var(--brass-dark);
+  border-radius: 4px;
+  letter-spacing: 2px;
+}
+
+/* BUILD PHASE */
+.build-phase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.build-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.rig-section,
+.inventory-section {
+  padding: 16px;
+  overflow: auto;
+}
+
+.rig-section h3,
+.inventory-section h3 {
+  color: var(--brass);
+  margin-bottom: 12px;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.rig-grid-placeholder,
+.inventory-placeholder {
+  background: var(--bg-dark);
+  border: 2px dashed var(--border-rivet);
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* COMBAT PHASE */
+.combat-phase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.combat-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.arena-container {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+}
+
+#arena-canvas {
+  border: 2px solid var(--brass-dark);
+  background: #0a0c10;
+}
+
+.combat-sidebar {
+  padding: 16px;
+  overflow: auto;
+}
+
+.combat-sidebar h3 {
+  color: var(--brass);
+  margin-bottom: 12px;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.event-log {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-rivet);
+  border-radius: 4px;
+  padding: 12px;
+  min-height: 300px;
+  max-height: 500px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* REWARD PHASE */
+.reward-phase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.reward-cards {
+  display: flex;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.reward-card {
+  width: 200px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--brass-dark);
+}
+
+.reward-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--brass);
+  box-shadow: 0 8px 24px var(--glow-soft);
+}
+
+.reward-card h3 {
+  color: var(--brass);
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.reward-card p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* GAME OVER */
+.game-over {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-over-stats {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.game-over-stats p {
+  font-size: 18px;
+  margin-bottom: 24px;
+  color: var(--brass);
+}
+
+.game-over-stats button {
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: bold;
+  background: var(--brass-dark);
+  color: var(--bg-dark);
+  border: 2px solid var(--brass);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 2px;
+}
+
+.game-over-stats button:hover {
+  background: var(--brass);
+  box-shadow: 0 4px 16px var(--glow-soft);
+}

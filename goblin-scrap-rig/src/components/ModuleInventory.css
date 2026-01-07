@@ -1,0 +1,118 @@
+.module-inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-dark);
+  border: 2px solid var(--border-rivet);
+  border-radius: 4px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.empty-inventory {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.inventory-module {
+  background: var(--bg-panel);
+  border: 2px solid;
+  border-radius: 4px;
+  padding: 12px;
+  cursor: grab;
+  transition: all 0.15s ease;
+}
+
+.inventory-module:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.inventory-module:active {
+  cursor: grabbing;
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.module-icon-large {
+  font-size: 40px;
+}
+
+.module-info {
+  flex: 1;
+}
+
+.module-name-inv {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.module-kind {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+.module-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--bg-dark);
+  border-radius: 3px;
+}
+
+.stat {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.stat.heat-cost {
+  color: var(--heat-orange);
+}
+
+.module-affixes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.affix-tag {
+  font-size: 9px;
+  padding: 3px 6px;
+  background: var(--brass-dark);
+  color: var(--bg-dark);
+  border-radius: 2px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.salvage-btn {
+  width: 100%;
+  padding: 6px;
+  background: var(--bg-panel-light);
+  border: 1px solid var(--border-rivet);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.salvage-btn:hover {
+  background: var(--border-rivet);
+  color: var(--brass);
+  border-color: var(--brass-dark);
+}
