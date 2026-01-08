@@ -427,7 +427,9 @@ function App() {
     // Remove from inventory
     setInventoryModules((prev) => prev.filter((m) => m.instanceId !== module.instanceId));
     // Add to placed with position
-    setPlacedModules((prev) => [...prev, { ...module, gridX: x, gridY: y }]);
+    const placedModule = { ...module, gridX: x, gridY: y };
+    setPlacedModules((prev) => [...prev, placedModule]);
+    spawnPlacementBurst(placedModule);
   };
 
   const handleModuleMoved = (moduleId: string, x: number, y: number) => {
