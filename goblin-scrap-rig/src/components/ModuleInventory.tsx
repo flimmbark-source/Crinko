@@ -51,27 +51,31 @@ export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
           {modules.map((module) => (
             <div
               key={module.instanceId}
-              className="inventory-module"
-              draggable
-              onDragStart={(e) => handleDragStart(e, module)}
-              onMouseEnter={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setHoveredModule({
-                  module,
-                  x: rect.right + 10,
-                  y: rect.top,
-                });
-              }}
-              onMouseLeave={() => setHoveredModule(null)}
-              style={{
-                borderColor: getRarityColor(module.rarity),
-              }}
+              className="inventory-module grid-cell occupied"
             >
-              <div className="module-icon-large">{module.art.icon}</div>
-              <div className="module-name-inv">{module.name}</div>
-              {module.stats.range !== undefined && (
-                <div className="module-range">Range {formatRange(module.stats.range)}</div>
-              )}
+              <div
+                className="module-in-grid"
+                draggable
+                onDragStart={(e) => handleDragStart(e, module)}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHoveredModule({
+                    module,
+                    x: rect.right + 10,
+                    y: rect.top,
+                  });
+                }}
+                onMouseLeave={() => setHoveredModule(null)}
+                style={{
+                  borderColor: getRarityColor(module.rarity),
+                }}
+              >
+                <div className="module-icon">{module.art.icon}</div>
+                <div className="module-name">{module.name}</div>
+                {module.stats.range !== undefined && (
+                  <div className="module-range">{formatRange(module.stats.range)}</div>
+                )}
+              </div>
               <button
                 className="salvage-btn"
                 onClick={() => onSalvage(module.instanceId)}

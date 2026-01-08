@@ -13,7 +13,7 @@
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, 70px);
-  gap: 12px;
+  gap: 8px;
 }
 
 .empty-inventory {
@@ -24,45 +24,6 @@
 
 .inventory-module {
   position: relative;
-  width: 70px;
-  height: 70px;
-  background: var(--bg-panel);
-  border: 2px solid;
-  border-radius: 6px;
-  padding: 8px;
-  cursor: grab;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  text-align: center;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.inventory-module:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
-}
-
-.inventory-module:active {
-  cursor: grabbing;
-}
-
-.module-icon-large {
-  font-size: 32px;
-}
-
-.module-name-inv {
-  font-size: 11px;
-  font-weight: bold;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.module-range {
-  font-size: 10px;
-  color: var(--heat-orange);
 }
 
 .salvage-btn {
