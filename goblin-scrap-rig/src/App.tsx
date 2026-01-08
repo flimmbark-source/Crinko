@@ -126,7 +126,6 @@ function App() {
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [resourceParticles, setResourceParticles] = useState<ResourceParticle[]>([]);
   const modulesRef = useRef<ModuleInstance[]>([]);
-  const particleEmittersRef = useRef(new Map<string, number>());
 
   // Reward state
   const [rewardOptions, setRewardOptions] = useState<RewardOption[]>([]);
@@ -139,7 +138,6 @@ function App() {
   const GRAVITY = 1.8;
   const DRAG = 0.985;
   const BOUNCE = 0.6;
-  const EMIT_RATE_SCALE = 1.2;
 
   const getOutputPort = (module: ModuleInstance) => ({
     x: module.gridX! + OUTPUT_OFFSET,
@@ -186,44 +184,6 @@ function App() {
     });
 
     return particles;
-  };
-
-  const spawnParticleAtModule = (
-    module: ModuleInstance,
-    resource: ResourceType,
-    count: number,
-    speedBase = 1.4
-  ) => {
-    if (module.gridX === undefined || module.gridY === undefined) return [];
-    const output = getOutputPort(module);
-    const particles: ResourceParticle[] = [];
-    for (let i = 0; i < count; i++) {
-      const speed = speedBase + Math.random() * 0.8;
-      particles.push({
-        id: `particle-${Date.now()}-${Math.random()}`,
-        resource,
-        x: output.x,
-        y: output.y,
-        vx: speed + (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.6 - 0.2,
-        size: 6 + Math.random() * 4,
-        createdAt: performance.now(),
-      });
-    }
-    return particles;
-  };
-
-  const spawnPlacementBurst = (module: ModuleInstance) => {
-    const particles: ResourceParticle[] = [];
-    if (module.stats.scrapPerSec) {
-      particles.push(...spawnParticleAtModule(module, 'scrap', 6, 1.8));
-    }
-    if (module.stats.ammoPerSec || module.stats.scrapToAmmoRate) {
-      particles.push(...spawnParticleAtModule(module, 'ammo', 6, 1.8));
-    }
-    if (particles.length > 0) {
-      setResourceParticles((prev) => [...prev, ...particles].slice(-MAX_PARTICLES));
-    }
   };
 
   const updateParticles = (
@@ -334,12 +294,6 @@ function App() {
 
   useEffect(() => {
     modulesRef.current = placedModules;
-    const activeIds = new Set(placedModules.map((module) => module.instanceId));
-    particleEmittersRef.current.forEach((_value, key) => {
-      if (!activeIds.has(key)) {
-        particleEmittersRef.current.delete(key);
-      }
-    });
   }, [placedModules]);
 
   useEffect(() => {
@@ -349,30 +303,8 @@ function App() {
     const step = (time: number) => {
       const deltaTime = Math.min(0.05, (time - lastTime) / 1000);
       lastTime = time;
-      const spawned: ResourceParticle[] = [];
-      modulesRef.current.forEach((module) => {
-        if (module.gridX === undefined || module.gridY === undefined) return;
-        let outputResource: ResourceType | null = null;
-        let outputRate = 0;
-        if (module.stats.scrapPerSec) {
-          outputResource = 'scrap';
-          outputRate = module.stats.scrapPerSec;
-        } else if (module.stats.ammoPerSec || module.stats.scrapToAmmoRate) {
-          outputResource = 'ammo';
-          outputRate = module.stats.ammoPerSec ?? 1;
-        }
-
-        if (!outputResource || outputRate <= 0) return;
-        const accumulator = (particleEmittersRef.current.get(module.instanceId) ?? 0) + outputRate * deltaTime * EMIT_RATE_SCALE;
-        const count = Math.floor(accumulator);
-        particleEmittersRef.current.set(module.instanceId, accumulator - count);
-        if (count > 0) {
-          spawned.push(...spawnParticleAtModule(module, outputResource, count));
-        }
-      });
-
       setResourceParticles((prev) =>
-        updateParticles([...prev, ...spawned], deltaTime, modulesRef.current, time).slice(-MAX_PARTICLES)
+        updateParticles(prev, deltaTime, modulesRef.current, time).slice(-MAX_PARTICLES)
       );
       frameId = requestAnimationFrame(step);
     };
