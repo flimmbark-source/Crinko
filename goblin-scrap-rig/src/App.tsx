@@ -1,19 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { ResourceHUD } from './components/ResourceHUD';
 import { RigGrid } from './components/RigGrid';
 import { ModuleInventory } from './components/ModuleInventory';
-import type { GamePhase, GameResources, ResourceCaps, ModuleInstance, ModuleDef, Projectile, RewardOption } from './types';
+import type {
+  GamePhase,
+  GameResources,
+  ResourceCaps,
+  ModuleInstance,
+  ModuleDef,
+  Projectile,
+  RewardOption,
+  ResourceParticle,
+  ResourceType,
+} from './types';
 import { BASE_MODULES } from './data/modules';
 import { AFFIX_POOL } from './data/affixes';
 import { runSimulationTick } from './simulation/engine';
 import { runCombatTick } from './simulation/combat';
 import { Arena } from './components/Arena';
+import { GRID_SIZE } from './constants/rigLayout';
 
 function App() {
   const [phase, setPhase] = useState<GamePhase>('build');
   const [currentWave, setCurrentWave] = useState(1);
   const [phaseTimer, setPhaseTimer] = useState(20);
+  const [canEndCombat, setCanEndCombat] = useState(false);
 
   const [resources, setResources] = useState<GameResources>({
     scrap: 25,
@@ -112,9 +124,138 @@ function App() {
 
   // Combat state
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
+  const [resourceParticles, setResourceParticles] = useState<ResourceParticle[]>([]);
+  const modulesRef = useRef<ModuleInstance[]>([]);
 
   // Reward state
   const [rewardOptions, setRewardOptions] = useState<RewardOption[]>([]);
+  const MAX_PARTICLES = 120;
+  const OUTPUT_OFFSET = 0.92;
+  const INTAKE_OFFSET = 0.08;
+  const VACUUM_RADIUS = 0.9;
+  const VACUUM_FORCE = 6;
+  const CAPTURE_RADIUS = 0.15;
+  const GRAVITY = 1.8;
+  const DRAG = 0.985;
+  const BOUNCE = 0.6;
+
+  const getOutputPort = (module: ModuleInstance) => ({
+    x: module.gridX! + OUTPUT_OFFSET,
+    y: module.gridY! + 0.5,
+  });
+
+  const getIntakePort = (module: ModuleInstance) => ({
+    x: module.gridX! + INTAKE_OFFSET,
+    y: module.gridY! + 0.5,
+  });
+
+  const spawnParticlesFromEvents = (
+    events: { type: string; data?: any }[],
+    modules: ModuleInstance[]
+  ) => {
+    const particles: ResourceParticle[] = [];
+    events.forEach((event) => {
+      if (event.type !== 'Produce' || !event.data?.moduleId || !event.data?.resource) return;
+      const resource = event.data.resource as ResourceType;
+      if (resource !== 'scrap' && resource !== 'ammo') return;
+      const module = modules.find((mod) => mod.instanceId === event.data.moduleId);
+      if (!module || module.gridX === undefined || module.gridY === undefined) return;
+      const output = getOutputPort(module);
+      const amount = Math.max(0.1, event.data.amount ?? 1);
+      const count = Math.max(1, Math.round(amount));
+      for (let i = 0; i < count; i++) {
+        const speed = 1.2 + Math.random() * 0.6;
+        particles.push({
+          id: `particle-${Date.now()}-${Math.random()}`,
+          resource,
+          x: output.x,
+          y: output.y,
+          vx: speed + (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.6 - 0.2,
+          size: Math.min(10, 4 + amount * 4),
+          createdAt: performance.now(),
+        });
+      }
+    });
+
+    return particles;
+  };
+
+  const updateParticles = (
+    particles: ResourceParticle[],
+    deltaTime: number,
+    modules: ModuleInstance[],
+    now: number
+  ) => {
+    const converters = modules.filter(
+      (module) => module.kind === 'converter' && module.gridX !== undefined && module.gridY !== undefined
+    );
+    const intakePorts = converters.map((module) => getIntakePort(module));
+    return particles
+      .map((particle) => {
+        let { x, y, vx, vy } = particle;
+        if (particle.resource === 'scrap' && intakePorts.length > 0) {
+          let closest: { x: number; y: number } | null = null;
+          let closestDist = Infinity;
+          intakePorts.forEach((port) => {
+            const dx = port.x - x;
+            const dy = port.y - y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < closestDist) {
+              closestDist = dist;
+              closest = port;
+            }
+          });
+
+          if (closest && closestDist < VACUUM_RADIUS) {
+            const dx = closest.x - x;
+            const dy = closest.y - y;
+            const dist = Math.max(0.001, Math.hypot(dx, dy));
+            const pull = (VACUUM_RADIUS - dist) / VACUUM_RADIUS;
+            vx += (dx / dist) * VACUUM_FORCE * pull * deltaTime;
+            vy += (dy / dist) * VACUUM_FORCE * pull * deltaTime;
+            if (dist < CAPTURE_RADIUS) {
+              return null;
+            }
+          }
+        }
+
+        vy += GRAVITY * deltaTime;
+        vx *= DRAG;
+        vy *= DRAG;
+        x += vx * deltaTime;
+        y += vy * deltaTime;
+
+        if (x < 0) {
+          x = 0;
+          vx = -vx * BOUNCE;
+        } else if (x > GRID_SIZE) {
+          x = GRID_SIZE;
+          vx = -vx * BOUNCE;
+        }
+
+        if (y < 0) {
+          y = 0;
+          vy = -vy * BOUNCE;
+        } else if (y > GRID_SIZE) {
+          y = GRID_SIZE;
+          vy = -vy * BOUNCE;
+        }
+
+        if (now - particle.createdAt > 6000) {
+          return null;
+        }
+
+        return {
+          ...particle,
+          x,
+          y,
+          vx,
+          vy,
+        };
+      })
+      .filter((particle): particle is ResourceParticle => particle !== null);
+  };
 
   // Phase timer countdown
   useEffect(() => {
@@ -141,6 +282,39 @@ function App() {
     return () => clearInterval(interval);
   }, [phase, currentWave, resources.baseHP, caps.baseHP]);
 
+  useEffect(() => {
+    modulesRef.current = placedModules;
+  }, [placedModules]);
+
+  useEffect(() => {
+    let frameId = 0;
+    let lastTime = performance.now();
+
+    const step = (time: number) => {
+      const deltaTime = Math.min(0.05, (time - lastTime) / 1000);
+      lastTime = time;
+      setResourceParticles((prev) =>
+        updateParticles(prev, deltaTime, modulesRef.current, time).slice(-MAX_PARTICLES)
+      );
+      frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
+    if (phase === 'reward' || phase === 'gameOver') {
+      setResourceParticles([]);
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === 'combat') {
+      setCanEndCombat(false);
+    }
+  }, [phase]);
+
   // Simulation tick (0.25s fixed tick)
   useEffect(() => {
     // Run simulation in both build and combat phases for testing
@@ -161,6 +335,10 @@ function App() {
 
       setResources(result.resources);
       setPlacedModules(result.modules);
+      setResourceParticles((prev) => [
+        ...prev,
+        ...spawnParticlesFromEvents(result.events, result.modules),
+      ].slice(-MAX_PARTICLES));
 
       // Update event log (keep last 20 events)
       if (result.events.length > 0) {
@@ -230,6 +408,7 @@ function App() {
       setCurrentWave((w) => w + 1);
       setPhase('build');
       setPhaseTimer(20);
+      setCanEndCombat(false);
     }
   };
 
@@ -299,6 +478,19 @@ function App() {
     setEventLog((prev) => [`💀 Enemy killed +1 scrap`, ...prev].slice(0, 20));
   };
 
+  const handleStartRound = () => {
+    setPhase('combat');
+    setPhaseTimer(60);
+    setCanEndCombat(false);
+  };
+
+  const handleEndRound = () => {
+    setRewardOptions(generateRewards(currentWave));
+    setPhase('reward');
+    setPhaseTimer(0);
+    setCanEndCombat(false);
+  };
+
   return (
     <div className="app">
       <ResourceHUD
@@ -306,6 +498,10 @@ function App() {
         caps={caps}
         phaseTimer={phaseTimer}
         currentWave={currentWave}
+        showStartRound={phase === 'build'}
+        showEndRound={phase === 'combat' && canEndCombat}
+        onStartRound={handleStartRound}
+        onEndRound={handleEndRound}
       />
 
       <div className="game-container">
@@ -319,6 +515,7 @@ function App() {
                 <h3>Rig Grid (5×5)</h3>
                 <RigGrid
                   modules={placedModules}
+                  resourceParticles={resourceParticles}
                   onModulePlaced={handleModulePlaced}
                   onModuleRemoved={handleModuleRemoved}
                   onModuleMoved={handleModuleMoved}
@@ -346,6 +543,7 @@ function App() {
                   currentWave={currentWave}
                   onBaseHit={handleBaseHit}
                   onEnemyKilled={handleEnemyKilled}
+                  onWaveCleared={() => setCanEndCombat(true)}
                   projectiles={projectiles}
                   turrets={placedModules}
                   isActive={phase === 'combat'}
