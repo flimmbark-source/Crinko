@@ -71,7 +71,7 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
       fireRate: 2, // 2 shots/sec
       ammoPerShot: 1,
       heatPerAction: 1,
-      range: 250, // Short range (screen units)
+      range: 500, // Medium range (screen units)
     },
     art: {
       icon: '🔫',
