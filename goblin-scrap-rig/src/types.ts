@@ -154,3 +154,14 @@ export interface RewardOption {
   module?: ModuleDef;
   amount?: number;
 }
+
+export interface ResourceParticle {
+  id: string;
+  resource: ResourceType;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  createdAt: number;
+}

@@ -8,6 +8,7 @@
   border-radius: 4px;
   width: fit-content;
   margin: 0 auto;
+  position: relative;
 }
 
 .grid-row {
@@ -74,6 +75,7 @@
   border-radius: 3px;
   cursor: grab;
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+  position: relative;
 }
 
 .module-in-grid:active {
@@ -112,4 +114,69 @@
   padding: 2px;
   text-align: center;
   border-radius: 2px;
+}
+
+.rig-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.resource-particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.9;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.resource-particle.scrap {
+  background: radial-gradient(circle, #c9c9c9 0%, #7a7a7a 70%);
+}
+
+.resource-particle.ammo {
+  background: radial-gradient(circle, #f5d76e 0%, #c69c1f 70%);
+}
+
+.module-port {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brass);
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
+}
+
+.module-port.output {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.module-port.intake {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.9) 0%, rgba(96, 165, 250, 0.3) 60%);
+  animation: vacuum-pulse 0.8s infinite ease-in-out;
+}
+
+.module-port.intake.ammo {
+  top: 70%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.3) 60%);
+}
+
+@keyframes vacuum-pulse {
+  0% {
+    transform: translateY(-50%) scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-50%) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50%) scale(0.9);
+    opacity: 0.6;
+  }
 }
