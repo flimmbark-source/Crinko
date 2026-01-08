@@ -7,6 +7,7 @@ interface ArenaProps {
   currentWave: number;
   onBaseHit: (damage: number) => void;
   onEnemyKilled: (enemyId: string) => void;
+  onWaveCleared: () => void;
   projectiles: Projectile[];
   turrets: ModuleInstance[];
   isActive: boolean;
@@ -16,6 +17,7 @@ export const Arena: React.FC<ArenaProps> = ({
   currentWave,
   onBaseHit,
   onEnemyKilled,
+  onWaveCleared,
   projectiles,
   turrets,
   isActive,
@@ -24,6 +26,10 @@ export const Arena: React.FC<ArenaProps> = ({
   const enemiesRef = useRef<Enemy[]>([]);
   const killedEnemiesRef = useRef<Set<string>>(new Set());
   const requestIdRef = useRef<number>(0);
+  const spawnedCountRef = useRef(0);
+  const totalEnemiesRef = useRef(0);
+  const spawnCompleteRef = useRef(false);
+  const clearedRef = useRef(false);
 
   const BASE_X = ARENA_WIDTH / 2;
   const BASE_Y = ARENA_HEIGHT - 30;
@@ -39,15 +45,23 @@ export const Arena: React.FC<ArenaProps> = ({
     if (!isActive) {
       updateEnemies([]);
       killedEnemiesRef.current.clear();
+      spawnedCountRef.current = 0;
+      totalEnemiesRef.current = 0;
+      spawnCompleteRef.current = false;
+      clearedRef.current = false;
       return;
     }
 
     killedEnemiesRef.current.clear();
+    spawnedCountRef.current = 0;
+    spawnCompleteRef.current = false;
+    clearedRef.current = false;
 
     const waveConfig = WAVE_CONFIGS.find((w) => w.wave === currentWave);
     if (!waveConfig) return;
 
     const spawnTimers: number[] = [];
+    totalEnemiesRef.current = waveConfig.enemies.reduce((sum, group) => sum + group.count, 0);
 
     waveConfig.enemies.forEach((enemyGroup) => {
       const enemyDef = ENEMY_TYPES[enemyGroup.type];
@@ -76,6 +90,10 @@ export const Arena: React.FC<ArenaProps> = ({
 
         updateEnemies((prev) => [...prev, newEnemy]);
         spawned++;
+        spawnedCountRef.current += 1;
+        if (spawnedCountRef.current >= totalEnemiesRef.current) {
+          spawnCompleteRef.current = true;
+        }
       }, enemyGroup.spawnInterval * 1000);
 
       spawnTimers.push(interval);
@@ -136,6 +154,10 @@ export const Arena: React.FC<ArenaProps> = ({
 
       const alive = updated.filter((e) => e.alive);
       updateEnemies(alive);
+      if (spawnCompleteRef.current && alive.length === 0 && !clearedRef.current) {
+        clearedRef.current = true;
+        onWaveCleared();
+      }
 
       // Render
       render(ctx);
@@ -150,7 +172,7 @@ export const Arena: React.FC<ArenaProps> = ({
         cancelAnimationFrame(requestIdRef.current);
       }
     };
-  }, [isActive, onBaseHit, onEnemyKilled]);
+  }, [isActive, onBaseHit, onEnemyKilled, onWaveCleared]);
 
   const render = (ctx: CanvasRenderingContext2D) => {
     // Clear canvas
