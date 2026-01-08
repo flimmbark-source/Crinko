@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ModuleInstance } from '../types';
 import { ModuleTooltip } from './ModuleTooltip';
+import { formatRange } from '../utils/range';
 import './RigGrid.css';
 
 interface RigGridProps {
@@ -117,6 +118,9 @@ export const RigGrid: React.FC<RigGridProps> = ({
                   >
                     <div className="module-icon">{module.art.icon}</div>
                     <div className="module-name">{module.name}</div>
+                    {module.stats.range !== undefined && (
+                      <div className="module-range">{formatRange(module.stats.range)}</div>
+                    )}
                     {module.jammed && <div className="jam-indicator">JAMMED!</div>}
                   </div>
                 ) : (

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { ModuleInstance } from '../types';
+import { ModuleTooltip } from './ModuleTooltip';
+import { formatRange } from '../utils/range';
 import './ModuleInventory.css';
 
 interface ModuleInventoryProps {
@@ -11,6 +13,12 @@ export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
   modules,
   onSalvage,
 }) => {
+  const [hoveredModule, setHoveredModule] = useState<{
+    module: ModuleInstance;
+    x: number;
+    y: number;
+  } | null>(null);
+
   const handleDragStart = (e: React.DragEvent, module: ModuleInstance) => {
     e.dataTransfer.setData('module', JSON.stringify(module));
   };
@@ -27,10 +35,6 @@ export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
     }
   };
 
-  const getKindLabel = (kind: string) => {
-    return kind.toUpperCase();
-  };
-
   return (
     <div className="module-inventory">
       {modules.length === 0 && (
@@ -42,73 +46,51 @@ export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
         </div>
       )}
 
-      {modules.map((module) => (
-        <div
-          key={module.instanceId}
-          className="inventory-module"
-          draggable
-          onDragStart={(e) => handleDragStart(e, module)}
-          style={{
-            borderColor: getRarityColor(module.rarity),
-          }}
-        >
-          <div className="module-header">
-            <div className="module-icon-large">{module.art.icon}</div>
-            <div className="module-info">
+      {modules.length > 0 && (
+        <div className="inventory-grid">
+          {modules.map((module) => (
+            <div
+              key={module.instanceId}
+              className="inventory-module"
+              draggable
+              onDragStart={(e) => handleDragStart(e, module)}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setHoveredModule({
+                  module,
+                  x: rect.right + 10,
+                  y: rect.top,
+                });
+              }}
+              onMouseLeave={() => setHoveredModule(null)}
+              style={{
+                borderColor: getRarityColor(module.rarity),
+              }}
+            >
+              <div className="module-icon-large">{module.art.icon}</div>
               <div className="module-name-inv">{module.name}</div>
-              <div className="module-kind" style={{ color: getRarityColor(module.rarity) }}>
-                {getKindLabel(module.kind)}
-              </div>
+              {module.stats.range !== undefined && (
+                <div className="module-range">Range {formatRange(module.stats.range)}</div>
+              )}
+              <button
+                className="salvage-btn"
+                onClick={() => onSalvage(module.instanceId)}
+                title="Salvage for scrap"
+              >
+                🔨
+              </button>
             </div>
-          </div>
-
-          <div className="module-stats">
-            {module.stats.scrapPerSec && (
-              <div className="stat">
-                ⛏️ +{module.stats.scrapPerSec}/s scrap
-              </div>
-            )}
-            {module.stats.scrapToAmmoRate && (
-              <div className="stat">
-                ⚙️ {module.stats.scrapToAmmoRate}:1 scrap→ammo
-              </div>
-            )}
-            {module.stats.coolingPerSec && (
-              <div className="stat">
-                ❄️ -{module.stats.coolingPerSec}/s heat
-              </div>
-            )}
-            {module.stats.damage && (
-              <div className="stat">
-                ⚔️ {module.stats.damage} dmg @ {module.stats.fireRate}/s
-              </div>
-            )}
-            {module.stats.heatPerAction !== undefined && module.stats.heatPerAction > 0 && (
-              <div className="stat heat-cost">
-                🔥 +{module.stats.heatPerAction} heat
-              </div>
-            )}
-          </div>
-
-          {module.affixes.length > 0 && (
-            <div className="module-affixes">
-              {module.affixes.map((affix, idx) => (
-                <div key={idx} className="affix-tag">
-                  {affix.affixId}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button
-            className="salvage-btn"
-            onClick={() => onSalvage(module.instanceId)}
-            title="Salvage for scrap"
-          >
-            🔨 Salvage
-          </button>
+          ))}
         </div>
-      ))}
+      )}
+
+      {hoveredModule && (
+        <ModuleTooltip
+          module={hoveredModule.module}
+          x={hoveredModule.x}
+          y={hoveredModule.y}
+        />
+      )}
     </div>
   );
 };

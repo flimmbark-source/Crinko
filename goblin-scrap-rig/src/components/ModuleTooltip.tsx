@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ModuleInstance } from '../types';
 import { AFFIX_POOL } from '../data/affixes';
+import { formatRange, getRangeBand } from '../utils/range';
 import './ModuleTooltip.css';
 
 interface ModuleTooltipProps {
@@ -70,7 +71,9 @@ export const ModuleTooltip: React.FC<ModuleTooltipProps> = ({ module, x, y }) =>
             </div>
             <div className="stat-row">
               <span className="stat-label">Range:</span>
-              <span className="stat-value">{module.stats.range}px</span>
+              <span className="stat-value">
+                {formatRange(module.stats.range)} ({getRangeBand(module.stats.range)})
+              </span>
             </div>
           </>
         )}
