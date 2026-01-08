@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import type { Enemy, Projectile, ModuleInstance } from '../types';
 import { ENEMY_TYPES, WAVE_CONFIGS } from '../data/enemies';
+import { ARENA_HEIGHT, ARENA_WIDTH } from '../constants/arena';
 
 interface ArenaProps {
   currentWave: number;
@@ -20,20 +21,28 @@ export const Arena: React.FC<ArenaProps> = ({
   isActive,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [enemies, setEnemies] = useState<Enemy[]>([]);
+  const enemiesRef = useRef<Enemy[]>([]);
+  const killedEnemiesRef = useRef<Set<string>>(new Set());
   const requestIdRef = useRef<number>(0);
 
-  const CANVAS_WIDTH = 600;
-  const CANVAS_HEIGHT = 450;
-  const BASE_X = CANVAS_WIDTH / 2;
-  const BASE_Y = CANVAS_HEIGHT - 30;
+  const BASE_X = ARENA_WIDTH / 2;
+  const BASE_Y = ARENA_HEIGHT - 30;
+
+  const updateEnemies = (next: Enemy[] | ((prev: Enemy[]) => Enemy[])) => {
+    const updated = typeof next === 'function' ? next(enemiesRef.current) : next;
+    enemiesRef.current = updated;
+    (window as any).__arenaEnemies = updated;
+  };
 
   // Spawn enemies based on wave config
   useEffect(() => {
     if (!isActive) {
-      setEnemies([]);
+      updateEnemies([]);
+      killedEnemiesRef.current.clear();
       return;
     }
+
+    killedEnemiesRef.current.clear();
 
     const waveConfig = WAVE_CONFIGS.find((w) => w.wave === currentWave);
     if (!waveConfig) return;
@@ -52,7 +61,7 @@ export const Arena: React.FC<ArenaProps> = ({
         }
 
         // Spawn enemy at random X position at top
-        const spawnX = Math.random() * (CANVAS_WIDTH - 100) + 50;
+        const spawnX = Math.random() * (ARENA_WIDTH - 100) + 50;
         const newEnemy: Enemy = {
           id: `enemy-${Date.now()}-${Math.random()}`,
           type: enemyGroup.type,
@@ -65,7 +74,7 @@ export const Arena: React.FC<ArenaProps> = ({
           alive: true,
         };
 
-        setEnemies((prev) => [...prev, newEnemy]);
+        updateEnemies((prev) => [...prev, newEnemy]);
         spawned++;
       }, enemyGroup.spawnInterval * 1000);
 
@@ -94,45 +103,39 @@ export const Arena: React.FC<ArenaProps> = ({
       lastTime = currentTime;
 
       // Update enemies
-      setEnemies((prevEnemies) => {
-        const updated = prevEnemies.map((enemy) => {
-          if (!enemy.alive) return enemy;
+      const updated = enemiesRef.current.map((enemy) => {
+        if (!enemy.alive) return enemy;
 
-          // Move toward base
-          const dx = BASE_X - enemy.x;
-          const dy = BASE_Y - enemy.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+        // Move toward base
+        const dx = BASE_X - enemy.x;
+        const dy = BASE_Y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 20) {
-            // Reached base
-            onBaseHit(enemy.damage);
-            return { ...enemy, alive: false };
-          }
+        if (distance < 20) {
+          // Reached base
+          onBaseHit(enemy.damage);
+          return { ...enemy, alive: false };
+        }
 
-          const moveX = (dx / distance) * enemy.speed * deltaTime;
-          const moveY = (dy / distance) * enemy.speed * deltaTime;
+        const moveX = (dx / distance) * enemy.speed * deltaTime;
+        const moveY = (dy / distance) * enemy.speed * deltaTime;
 
-          return {
-            ...enemy,
-            x: enemy.x + moveX,
-            y: enemy.y + moveY,
-          };
-        });
-
-        // Filter out dead enemies
-        const alive = updated.filter((e) => e.alive);
-
-        // Check if any died
-        updated.forEach((e) => {
-          if (!e.alive && prevEnemies.find((p) => p.id === e.id)?.alive) {
-            if (e.hp <= 0) {
-              onEnemyKilled(e.id);
-            }
-          }
-        });
-
-        return alive;
+        return {
+          ...enemy,
+          x: enemy.x + moveX,
+          y: enemy.y + moveY,
+        };
       });
+
+      updated.forEach((enemy) => {
+        if (!enemy.alive && enemy.hp <= 0 && !killedEnemiesRef.current.has(enemy.id)) {
+          killedEnemiesRef.current.add(enemy.id);
+          onEnemyKilled(enemy.id);
+        }
+      });
+
+      const alive = updated.filter((e) => e.alive);
+      updateEnemies(alive);
 
       // Render
       render(ctx);
@@ -152,7 +155,7 @@ export const Arena: React.FC<ArenaProps> = ({
   const render = (ctx: CanvasRenderingContext2D) => {
     // Clear canvas
     ctx.fillStyle = '#0a0c10';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
 
     // Draw base
     ctx.fillStyle = '#d4af37';
@@ -195,7 +198,7 @@ export const Arena: React.FC<ArenaProps> = ({
     });
 
     // Draw enemies
-    enemies.forEach((enemy) => {
+    enemiesRef.current.forEach((enemy) => {
       const enemyDef = ENEMY_TYPES[enemy.type];
       if (!enemyDef) return;
 
@@ -325,15 +328,17 @@ export const Arena: React.FC<ArenaProps> = ({
 
   // Expose enemies for hit detection
   useEffect(() => {
-    (window as any).__arenaEnemies = enemies;
-    (window as any).__setArenaEnemies = setEnemies;
-  }, [enemies]);
+    (window as any).__arenaEnemies = enemiesRef.current;
+    (window as any).__setArenaEnemies = (next: Enemy[] | ((prev: Enemy[]) => Enemy[])) => {
+      updateEnemies(next);
+    };
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
+      width={ARENA_WIDTH}
+      height={ARENA_HEIGHT}
       style={{ border: '2px solid var(--brass-dark)', background: '#0a0c10' }}
     />
   );

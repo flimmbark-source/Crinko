@@ -1,4 +1,5 @@
 import type { ModuleInstance, GameResources, ResourceCaps, Projectile, Enemy } from '../types';
+import { rangeUnitsToPixels } from '../constants/arena';
 
 export interface CombatState {
   resources: GameResources;
@@ -175,7 +176,8 @@ export function runCombatTick(state: CombatState, caps: ResourceCaps): CombatRes
         const dy = enemy.y - turretY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < (turret.stats.range || 200) && distance < nearestDistance) {
+        const rangePixels = rangeUnitsToPixels(turret.stats.range || 250);
+        if (distance < rangePixels && distance < nearestDistance) {
           nearestEnemy = enemy;
           nearestDistance = distance;
         }

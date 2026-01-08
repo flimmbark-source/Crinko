@@ -71,7 +71,7 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
       fireRate: 2, // 2 shots/sec
       ammoPerShot: 1,
       heatPerAction: 1,
-      range: 250, // Extended range for basic weapon
+      range: 250, // Short range (screen units)
     },
     art: {
       icon: '🔫',
@@ -93,7 +93,7 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
       fireRate: 0.5, // 1 shot every 2 seconds
       ammoPerShot: 3,
       heatPerAction: 5,
-      range: 200,
+      range: 500, // Medium range (screen units)
     },
     art: {
       icon: '💥',
@@ -116,7 +116,7 @@ export const BASE_MODULES: Omit<ModuleDef, 'affixes'>[] = [
       fireRate: 1,
       ammoPerShot: 2,
       heatPerAction: 4,
-      range: 180,
+      range: 900, // Long range (screen units)
     },
     art: {
       icon: '🎆',
