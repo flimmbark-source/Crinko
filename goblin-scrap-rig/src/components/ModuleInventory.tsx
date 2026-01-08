@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ModuleInstance } from '../types';
 import { ModuleTooltip } from './ModuleTooltip';
 import { formatRange } from '../utils/range';
@@ -18,6 +18,14 @@ export const ModuleInventory: React.FC<ModuleInventoryProps> = ({
     x: number;
     y: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (!hoveredModule) return;
+    const stillExists = modules.some((module) => module.instanceId === hoveredModule.module.instanceId);
+    if (!stillExists) {
+      setHoveredModule(null);
+    }
+  }, [modules, hoveredModule]);
 
   const handleDragStart = (e: React.DragEvent, module: ModuleInstance) => {
     e.dataTransfer.setData('module', JSON.stringify(module));

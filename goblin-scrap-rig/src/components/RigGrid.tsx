@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import type { ModuleInstance } from '../types';
+import type { ModuleInstance, ResourceParticle } from '../types';
 import { ModuleTooltip } from './ModuleTooltip';
 import { formatRange } from '../utils/range';
+import { GRID_SIZE, gridToPixel } from '../constants/rigLayout';
 import './RigGrid.css';
 
 interface RigGridProps {
   modules: ModuleInstance[];
+  resourceParticles: ResourceParticle[];
   onModulePlaced: (module: ModuleInstance, x: number, y: number) => void;
   onModuleRemoved: (moduleId: string) => void;
   onModuleMoved: (moduleId: string, x: number, y: number) => void;
@@ -13,11 +15,11 @@ interface RigGridProps {
 
 export const RigGrid: React.FC<RigGridProps> = ({
   modules,
+  resourceParticles,
   onModulePlaced,
   onModuleRemoved,
   onModuleMoved,
 }) => {
-  const GRID_SIZE = 5;
   const [hoveredModule, setHoveredModule] = useState<{
     module: ModuleInstance;
     x: number;
@@ -81,6 +83,20 @@ export const RigGrid: React.FC<RigGridProps> = ({
   return (
     <>
       <div className="rig-grid">
+        <div className="rig-particles">
+          {resourceParticles.map((particle) => (
+            <div
+              key={particle.id}
+              className={`resource-particle ${particle.resource}`}
+              style={{
+                width: particle.size,
+                height: particle.size,
+                left: gridToPixel(particle.x) - particle.size / 2,
+                top: gridToPixel(particle.y) - particle.size / 2,
+              }}
+            />
+          ))}
+        </div>
         {Array.from({ length: GRID_SIZE }).map((_, y) => (
           <div key={y} className="grid-row">
             {Array.from({ length: GRID_SIZE }).map((_, x) => {
@@ -122,6 +138,10 @@ export const RigGrid: React.FC<RigGridProps> = ({
                       <div className="module-range">{formatRange(module.stats.range)}</div>
                     )}
                     {module.jammed && <div className="jam-indicator">JAMMED!</div>}
+                    {(module.stats.scrapPerSec || module.stats.ammoPerSec || module.stats.scrapToAmmoRate) && (
+                      <div className="module-port output" />
+                    )}
+                    {module.stats.scrapToAmmoRate && <div className="module-port intake" />}
                   </div>
                 ) : (
                   <div className="empty-slot">
