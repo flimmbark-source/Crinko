@@ -154,6 +154,31 @@ function App() {
     y: module.gridY! + 0.5,
   });
 
+  const spawnParticlesAtPoint = (
+    resource: ResourceType,
+    x: number,
+    y: number,
+    count: number,
+    baseSpeed: number,
+    directionX: number
+  ) => {
+    const particles: ResourceParticle[] = [];
+    for (let i = 0; i < count; i++) {
+      const speed = baseSpeed + Math.random() * 0.6;
+      particles.push({
+        id: `particle-${Date.now()}-${Math.random()}`,
+        resource,
+        x,
+        y,
+        vx: speed * directionX + (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: 5 + Math.random() * 4,
+        createdAt: performance.now(),
+      });
+    }
+    return particles;
+  };
+
   const spawnParticlesFromEvents = (
     events: { type: string; data?: any }[],
     modules: ModuleInstance[]
@@ -165,21 +190,16 @@ function App() {
       if (resource !== 'scrap' && resource !== 'ammo') return;
       const module = modules.find((mod) => mod.instanceId === event.data.moduleId);
       if (!module || module.gridX === undefined || module.gridY === undefined) return;
-      const output = getOutputPort(module);
       const amount = Math.max(0.1, event.data.amount ?? 1);
-      const count = Math.max(1, Math.round(amount));
-      for (let i = 0; i < count; i++) {
-        const speed = 1.2 + Math.random() * 0.6;
-        particles.push({
-          id: `particle-${Date.now()}-${Math.random()}`,
-          resource,
-          x: output.x,
-          y: output.y,
-          vx: speed + (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.6 - 0.2,
-          size: Math.min(10, 4 + amount * 4),
-          createdAt: performance.now(),
-        });
+      const count = Math.max(1, Math.ceil(amount));
+      const output = getOutputPort(module);
+      particles.push(...spawnParticlesAtPoint(resource, output.x, output.y, count, 1.4, 1));
+
+      if (module.kind === 'converter' && resource === 'ammo' && module.stats.scrapToAmmoRate) {
+        const intake = getIntakePort(module);
+        const intakeX = Math.max(0, intake.x - 0.2);
+        const intakeCount = Math.max(1, Math.ceil(amount));
+        particles.push(...spawnParticlesAtPoint('scrap', intakeX, intake.y, intakeCount, 1.1, 1));
       }
     });
 
