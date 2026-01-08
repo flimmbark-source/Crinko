@@ -7,6 +7,10 @@ interface ResourceHUDProps {
   caps: ResourceCaps;
   phaseTimer: number;
   currentWave: number;
+  showStartRound?: boolean;
+  showEndRound?: boolean;
+  onStartRound?: () => void;
+  onEndRound?: () => void;
 }
 
 export const ResourceHUD: React.FC<ResourceHUDProps> = ({
@@ -14,6 +18,10 @@ export const ResourceHUD: React.FC<ResourceHUDProps> = ({
   caps,
   phaseTimer,
   currentWave,
+  showStartRound,
+  showEndRound,
+  onStartRound,
+  onEndRound,
 }) => {
   const heatPercent = (resources.heat / caps.heat) * 100;
   const isHotHeat = heatPercent >= 80;
@@ -110,6 +118,18 @@ export const ResourceHUD: React.FC<ResourceHUDProps> = ({
         <div className="timer brass-accent">
           <span className="label">TIME</span>
           <span className="value">{phaseTimer}s</span>
+        </div>
+        <div className="phase-actions">
+          {showStartRound && (
+            <button className="phase-action-btn" onClick={onStartRound}>
+              ▶ Start Round
+            </button>
+          )}
+          {showEndRound && (
+            <button className="phase-action-btn" onClick={onEndRound}>
+              ⏹ End Round
+            </button>
+          )}
         </div>
       </div>
     </div>
