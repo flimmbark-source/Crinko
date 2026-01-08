@@ -126,6 +126,8 @@ function App() {
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [resourceParticles, setResourceParticles] = useState<ResourceParticle[]>([]);
   const modulesRef = useRef<ModuleInstance[]>([]);
+  const resourcesRef = useRef<GameResources>(resources);
+  const projectilesRef = useRef<Projectile[]>([]);
 
   // Reward state
   const [rewardOptions, setRewardOptions] = useState<RewardOption[]>([]);
@@ -317,6 +319,14 @@ function App() {
   }, [placedModules]);
 
   useEffect(() => {
+    resourcesRef.current = resources;
+  }, [resources]);
+
+  useEffect(() => {
+    projectilesRef.current = projectiles;
+  }, [projectiles]);
+
+  useEffect(() => {
     let frameId = 0;
     let lastTime = performance.now();
 
@@ -356,13 +366,15 @@ function App() {
     const interval = setInterval(() => {
       const result = runSimulationTick(
         {
-          resources,
-          modules: placedModules,
+          resources: resourcesRef.current,
+          modules: modulesRef.current,
           deltaTime: DELTA_TIME,
         },
         caps
       );
 
+      resourcesRef.current = result.resources;
+      modulesRef.current = result.modules;
       setResources(result.resources);
       setPlacedModules(result.modules);
       setResourceParticles((prev) => [
@@ -380,7 +392,7 @@ function App() {
     }, TICK_MS);
 
     return () => clearInterval(interval);
-  }, [phase, resources, placedModules, caps]);
+  }, [phase, caps]);
 
   // Combat tick (runs during combat phase for turret firing)
   useEffect(() => {
@@ -392,14 +404,16 @@ function App() {
     const interval = setInterval(() => {
       const result = runCombatTick(
         {
-          resources,
-          modules: placedModules,
-          projectiles,
+          resources: resourcesRef.current,
+          modules: modulesRef.current,
+          projectiles: projectilesRef.current,
           deltaTime: DELTA_TIME,
         },
         caps
       );
 
+      resourcesRef.current = result.resources;
+      projectilesRef.current = result.projectiles;
       setResources(result.resources);
       setProjectiles(result.projectiles);
 
@@ -413,7 +427,7 @@ function App() {
     }, TICK_MS);
 
     return () => clearInterval(interval);
-  }, [phase, resources, placedModules, projectiles, caps]);
+  }, [phase, caps]);
 
   const handleRewardChoice = (reward: RewardOption) => {
     // Apply reward
