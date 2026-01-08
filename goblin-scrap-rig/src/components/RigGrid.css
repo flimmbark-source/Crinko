@@ -161,6 +161,11 @@
   animation: vacuum-pulse 0.8s infinite ease-in-out;
 }
 
+.module-port.intake.ammo {
+  top: 70%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.3) 60%);
+}
+
 @keyframes vacuum-pulse {
   0% {
     transform: translateY(-50%) scale(0.9);

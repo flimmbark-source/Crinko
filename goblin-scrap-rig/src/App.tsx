@@ -151,6 +151,11 @@ function App() {
     y: module.gridY! + 0.5,
   });
 
+  const getAmmoPort = (module: ModuleInstance) => ({
+    x: module.gridX! + INTAKE_OFFSET,
+    y: module.gridY! + 0.5,
+  });
+
   const spawnParticlesFromEvents = (
     events: { type: string; data?: any }[],
     modules: ModuleInstance[]
@@ -230,14 +235,19 @@ function App() {
     const converters = modules.filter(
       (module) => module.kind === 'converter' && module.gridX !== undefined && module.gridY !== undefined
     );
+    const spenders = modules.filter(
+      (module) => module.kind === 'spender' && module.gridX !== undefined && module.gridY !== undefined
+    );
     const intakePorts = converters.map((module) => getIntakePort(module));
+    const ammoPorts = spenders.map((module) => getAmmoPort(module));
     return particles
       .map((particle) => {
         let { x, y, vx, vy } = particle;
-        if (particle.resource === 'scrap' && intakePorts.length > 0) {
+        const targets = particle.resource === 'scrap' ? intakePorts : ammoPorts;
+        if (targets.length > 0) {
           let closest: { x: number; y: number } | null = null;
           let closestDist = Infinity;
-          intakePorts.forEach((port) => {
+          targets.forEach((port) => {
             const dx = port.x - x;
             const dy = port.y - y;
             const dist = Math.hypot(dx, dy);

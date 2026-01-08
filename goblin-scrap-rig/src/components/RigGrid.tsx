@@ -142,6 +142,7 @@ export const RigGrid: React.FC<RigGridProps> = ({
                       <div className="module-port output" />
                     )}
                     {module.stats.scrapToAmmoRate && <div className="module-port intake" />}
+                    {module.stats.ammoPerShot && <div className="module-port intake ammo" />}
                   </div>
                 ) : (
                   <div className="empty-slot">
