@@ -156,6 +156,21 @@ function App() {
     y: module.gridY! + 0.5,
   });
 
+  const spawnPlacementBurst = (module: ModuleInstance) => {
+    if (module.gridX === undefined || module.gridY === undefined) return;
+    if (!module.stats.scrapPerSec && !module.stats.ammoPerSec) return;
+
+    const output = getOutputPort(module);
+    const resource: ResourceType = module.stats.ammoPerSec ? 'ammo' : 'scrap';
+    const baseRate = module.stats.ammoPerSec ?? module.stats.scrapPerSec ?? 1;
+    const count = Math.max(2, Math.ceil(baseRate * 2));
+
+    setResourceParticles((prev) => [
+      ...prev,
+      ...spawnParticlesAtPoint(resource, output.x, output.y, count, 1.6, 1),
+    ].slice(-MAX_PARTICLES));
+  };
+
   const spawnParticlesAtPoint = (
     resource: ResourceType,
     x: number,
