@@ -69,12 +69,14 @@ export const ModuleTooltip: React.FC<ModuleTooltipProps> = ({ module, x, y }) =>
               <span className="stat-label">Ammo/Shot:</span>
               <span className="stat-value">{module.stats.ammoPerShot}</span>
             </div>
-            <div className="stat-row">
-              <span className="stat-label">Range:</span>
-              <span className="stat-value">
-                {formatRange(module.stats.range)} ({getRangeBand(module.stats.range)})
-              </span>
-            </div>
+            {module.stats.range !== undefined && (
+              <div className="stat-row">
+                <span className="stat-label">Range:</span>
+                <span className="stat-value">
+                  {formatRange(module.stats.range)} ({getRangeBand(module.stats.range)})
+                </span>
+              </div>
+            )}
           </>
         )}
         {module.stats.heatPerAction !== undefined && module.stats.heatPerAction > 0 && (

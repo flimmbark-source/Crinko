@@ -141,17 +141,17 @@ function App() {
   const DRAG = 0.985;
   const BOUNCE = 0.6;
 
-  const getOutputPort = (module: ModuleInstance) => ({
+  const getOutputPort = (module: ModuleInstance): { x: number; y: number } => ({
     x: module.gridX! + OUTPUT_OFFSET,
     y: module.gridY! + 0.5,
   });
 
-  const getIntakePort = (module: ModuleInstance) => ({
+  const getIntakePort = (module: ModuleInstance): { x: number; y: number } => ({
     x: module.gridX! + INTAKE_OFFSET,
     y: module.gridY! + 0.5,
   });
 
-  const getAmmoPort = (module: ModuleInstance) => ({
+  const getAmmoPort = (module: ModuleInstance): { x: number; y: number } => ({
     x: module.gridX! + INTAKE_OFFSET,
     y: module.gridY! + 0.5,
   });
@@ -227,7 +227,8 @@ function App() {
         let { x, y, vx, vy } = particle;
         const targets = particle.resource === 'scrap' ? intakePorts : ammoPorts;
         if (targets.length > 0) {
-          let closest: { x: number; y: number } | null = null;
+          type Port = { x: number; y: number };
+          let closest: Port | null = null;
           let closestDist = Infinity;
           targets.forEach((port) => {
             const dx = port.x - x;
@@ -235,13 +236,14 @@ function App() {
             const dist = Math.hypot(dx, dy);
             if (dist < closestDist) {
               closestDist = dist;
-              closest = port;
+              closest = port as Port;
             }
           });
 
-          if (closest && closestDist < VACUUM_RADIUS) {
-            const dx = closest.x - x;
-            const dy = closest.y - y;
+          if (closest !== null && closestDist < VACUUM_RADIUS) {
+            const closestPort: Port = closest;
+            const dx = closestPort.x - x;
+            const dy = closestPort.y - y;
             const dist = Math.max(0.001, Math.hypot(dx, dy));
             const pull = (VACUUM_RADIUS - dist) / VACUUM_RADIUS;
             vx += (dx / dist) * VACUUM_FORCE * pull * deltaTime;
@@ -289,23 +291,17 @@ function App() {
       .filter((particle): particle is ResourceParticle => particle !== null);
   };
 
-  // Phase timer countdown
+  // Phase timer countdown (only for combat phase)
   useEffect(() => {
-    if (phase === 'gameOver' || phase === 'reward') return;
+    if (phase !== 'combat') return;
 
     const interval = setInterval(() => {
       setPhaseTimer((prev) => {
         if (prev <= 1) {
-          // Phase transition
-          if (phase === 'build') {
-            setPhase('combat');
-            return 60; // Combat phase duration
-          } else if (phase === 'combat') {
-            // Generate rewards before transitioning
-            setRewardOptions(generateRewards(currentWave));
-            setPhase('reward');
-            return 0;
-          }
+          // Combat phase complete - generate rewards
+          setRewardOptions(generateRewards(currentWave));
+          setPhase('reward');
+          return 0;
         }
         return prev - 1;
       });
@@ -463,7 +459,8 @@ function App() {
     // Add to placed with position
     const placedModule = { ...module, gridX: x, gridY: y };
     setPlacedModules((prev) => [...prev, placedModule]);
-    spawnPlacementBurst(placedModule);
+    // Visual effect for module placement (optional)
+    // Could spawn particles or play animation here
   };
 
   const handleModuleMoved = (moduleId: string, x: number, y: number) => {
@@ -544,6 +541,7 @@ function App() {
         caps={caps}
         phaseTimer={phaseTimer}
         currentWave={currentWave}
+        phase={phase}
         showStartRound={phase === 'build'}
         showEndRound={phase === 'combat' && canEndCombat}
         onStartRound={handleStartRound}

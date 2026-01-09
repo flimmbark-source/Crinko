@@ -1,5 +1,5 @@
 import React from 'react';
-import type { GameResources, ResourceCaps } from '../types';
+import type { GameResources, ResourceCaps, GamePhase } from '../types';
 import './ResourceHUD.css';
 
 interface ResourceHUDProps {
@@ -7,6 +7,7 @@ interface ResourceHUDProps {
   caps: ResourceCaps;
   phaseTimer: number;
   currentWave: number;
+  phase: GamePhase;
   showStartRound?: boolean;
   showEndRound?: boolean;
   onStartRound?: () => void;
@@ -18,6 +19,7 @@ export const ResourceHUD: React.FC<ResourceHUDProps> = ({
   caps,
   phaseTimer,
   currentWave,
+  phase,
   showStartRound,
   showEndRound,
   onStartRound,
@@ -116,8 +118,8 @@ export const ResourceHUD: React.FC<ResourceHUDProps> = ({
 
       <div className="hud-right">
         <div className="timer brass-accent">
-          <span className="label">TIME</span>
-          <span className="value">{phaseTimer}s</span>
+          <span className="label">{phase === 'build' ? 'STATUS' : 'TIME'}</span>
+          <span className="value">{phase === 'build' ? 'READY' : `${phaseTimer}s`}</span>
         </div>
         <div className="phase-actions">
           {showStartRound && (
