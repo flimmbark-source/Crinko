@@ -192,16 +192,43 @@ function App() {
       if (resource !== 'scrap' && resource !== 'ammo') return;
       const module = modules.find((mod) => mod.instanceId === event.data.moduleId);
       if (!module || module.gridX === undefined || module.gridY === undefined) return;
-      const amount = Math.max(0.1, event.data.amount ?? 1);
-      const count = Math.max(1, Math.ceil(amount));
-      const output = getOutputPort(module);
-      particles.push(...spawnParticlesAtPoint(resource, output.x, output.y, count, 1.4, 1));
 
+      // 1 particle per 1 resource: use floor for whole particles, probability for fractional
+      const amount = event.data.amount ?? 1;
+      const wholeParticles = Math.floor(amount);
+      const fractionalPart = amount - wholeParticles;
+
+      // Spawn whole particles
+      let count = wholeParticles;
+
+      // Probabilistically spawn fractional particle
+      if (fractionalPart > 0 && Math.random() < fractionalPart) {
+        count += 1;
+      }
+
+      // Only spawn if count > 0
+      if (count > 0) {
+        const output = getOutputPort(module);
+        particles.push(...spawnParticlesAtPoint(resource, output.x, output.y, count, 1.4, 1));
+      }
+
+      // For converters, also spawn intake particles (scrap being consumed)
       if (module.kind === 'converter' && resource === 'ammo' && module.stats.scrapToAmmoRate) {
-        const intake = getIntakePort(module);
-        const intakeX = Math.max(0, intake.x - 0.2);
-        const intakeCount = Math.max(1, Math.ceil(amount));
-        particles.push(...spawnParticlesAtPoint('scrap', intakeX, intake.y, intakeCount, 1.1, 1));
+        // Calculate scrap consumed for this ammo production
+        const scrapConsumed = (module.stats.scrapToAmmoRate / 1) * amount;
+        const wholeScrapParticles = Math.floor(scrapConsumed);
+        const scrapFractional = scrapConsumed - wholeScrapParticles;
+
+        let scrapCount = wholeScrapParticles;
+        if (scrapFractional > 0 && Math.random() < scrapFractional) {
+          scrapCount += 1;
+        }
+
+        if (scrapCount > 0) {
+          const intake = getIntakePort(module);
+          const intakeX = Math.max(0, intake.x - 0.2);
+          particles.push(...spawnParticlesAtPoint('scrap', intakeX, intake.y, scrapCount, 1.1, 1));
+        }
       }
     });
 
