@@ -181,53 +181,32 @@ function App() {
     return particles;
   };
 
-  const spawnParticlesFromEvents = (
-    events: { type: string; data?: any }[],
-    modules: ModuleInstance[]
-  ) => {
+  // Simple particle spawning based on module stats (independent of resource production)
+  const spawnParticlesFromModules = (modules: ModuleInstance[]) => {
     const particles: ResourceParticle[] = [];
-    events.forEach((event) => {
-      if (event.type !== 'Produce' || !event.data?.moduleId || !event.data?.resource) return;
-      const resource = event.data.resource as ResourceType;
-      if (resource !== 'scrap' && resource !== 'ammo') return;
-      const module = modules.find((mod) => mod.instanceId === event.data.moduleId);
-      if (!module || module.gridX === undefined || module.gridY === undefined) return;
 
-      // 1 particle per 1 resource: use floor for whole particles, probability for fractional
-      const amount = event.data.amount ?? 1;
-      const wholeParticles = Math.floor(amount);
-      const fractionalPart = amount - wholeParticles;
+    modules.forEach((module) => {
+      // Skip if not placed or jammed
+      if (module.gridX === undefined || module.gridY === undefined || module.jammed) return;
 
-      // Spawn whole particles
-      let count = wholeParticles;
-
-      // Probabilistically spawn fractional particle
-      if (fractionalPart > 0 && Math.random() < fractionalPart) {
-        count += 1;
-      }
-
-      // Only spawn if count > 0
-      if (count > 0) {
+      // INPUT: Spawn scrap particles
+      if (module.stats.scrapPerSec && module.stats.scrapPerSec > 0) {
         const output = getOutputPort(module);
-        particles.push(...spawnParticlesAtPoint(resource, output.x, output.y, count, 1.4, 1));
+        particles.push(...spawnParticlesAtPoint('scrap', output.x, output.y, 1, 1.4, 1));
       }
 
-      // For converters, also spawn intake particles (scrap being consumed)
-      if (module.kind === 'converter' && resource === 'ammo' && module.stats.scrapToAmmoRate) {
-        // Calculate scrap consumed for this ammo production
-        const scrapConsumed = (module.stats.scrapToAmmoRate / 1) * amount;
-        const wholeScrapParticles = Math.floor(scrapConsumed);
-        const scrapFractional = scrapConsumed - wholeScrapParticles;
+      // CONVERTER: Spawn ammo output and scrap intake particles
+      if (module.stats.scrapToAmmoRate && module.stats.scrapToAmmoRate > 0) {
+        // Check if we have scrap to convert
+        if (resourcesRef.current.scrap >= 0.5) {
+          // Spawn ammo output particle
+          const output = getOutputPort(module);
+          particles.push(...spawnParticlesAtPoint('ammo', output.x, output.y, 1, 1.4, 1));
 
-        let scrapCount = wholeScrapParticles;
-        if (scrapFractional > 0 && Math.random() < scrapFractional) {
-          scrapCount += 1;
-        }
-
-        if (scrapCount > 0) {
+          // Spawn scrap intake particle
           const intake = getIntakePort(module);
           const intakeX = Math.max(0, intake.x - 0.2);
-          particles.push(...spawnParticlesAtPoint('scrap', intakeX, intake.y, scrapCount, 1.1, 1));
+          particles.push(...spawnParticlesAtPoint('scrap', intakeX, intake.y, 1, 1.1, 1));
         }
       }
     });
@@ -389,10 +368,6 @@ function App() {
       modulesRef.current = result.modules;
       setResources(result.resources);
       setPlacedModules(result.modules);
-      setResourceParticles((prev) => [
-        ...prev,
-        ...spawnParticlesFromEvents(result.events, result.modules),
-      ].slice(-MAX_PARTICLES));
 
       // Update event log (keep last 20 events)
       if (result.events.length > 0) {
@@ -440,6 +415,22 @@ function App() {
 
     return () => clearInterval(interval);
   }, [phase, caps]);
+
+  // Particle spawning timer (independent of resource production)
+  useEffect(() => {
+    if (phase === 'gameOver' || phase === 'reward') return;
+
+    const PARTICLE_SPAWN_MS = 500; // Spawn particles every 0.5 seconds
+
+    const interval = setInterval(() => {
+      const newParticles = spawnParticlesFromModules(modulesRef.current);
+      if (newParticles.length > 0) {
+        setResourceParticles((prev) => [...prev, ...newParticles].slice(-MAX_PARTICLES));
+      }
+    }, PARTICLE_SPAWN_MS);
+
+    return () => clearInterval(interval);
+  }, [phase]);
 
   const handleRewardChoice = (reward: RewardOption) => {
     // Apply reward
