@@ -125,9 +125,9 @@ function App() {
   // Combat state
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [resourceParticles, setResourceParticles] = useState<ResourceParticle[]>([]);
-  const modulesRef = useRef<ModuleInstance[]>([]);
+  const modulesRef = useRef<ModuleInstance[]>(placedModules);
   const resourcesRef = useRef<GameResources>(resources);
-  const projectilesRef = useRef<Projectile[]>([]);
+  const projectilesRef = useRef<Projectile[]>(projectiles);
 
   // Reward state
   const [rewardOptions, setRewardOptions] = useState<RewardOption[]>([]);
@@ -337,18 +337,7 @@ function App() {
     return () => clearInterval(interval);
   }, [phase, currentWave, resources.baseHP, caps.baseHP]);
 
-  useEffect(() => {
-    modulesRef.current = placedModules;
-  }, [placedModules]);
-
-  useEffect(() => {
-    resourcesRef.current = resources;
-  }, [resources]);
-
-  useEffect(() => {
-    projectilesRef.current = projectiles;
-  }, [projectiles]);
-
+  // Particle animation loop
   useEffect(() => {
     let frameId = 0;
     let lastTime = performance.now();
@@ -457,15 +446,19 @@ function App() {
     if (reward.type === 'module' && reward.module) {
       setInventoryModules((prev) => [...prev, reward.module as unknown as ModuleInstance]);
     } else if (reward.type === 'repair' && reward.amount) {
-      setResources((prev) => ({
-        ...prev,
-        baseHP: Math.min(prev.baseHP + (reward.amount || 0), caps.baseHP),
-      }));
+      const newResources = {
+        ...resourcesRef.current,
+        baseHP: Math.min(resourcesRef.current.baseHP + (reward.amount || 0), caps.baseHP),
+      };
+      resourcesRef.current = newResources;
+      setResources(newResources);
     } else if (reward.type === 'scrap' && reward.amount) {
-      setResources((prev) => ({
-        ...prev,
-        scrap: Math.min(prev.scrap + (reward.amount || 0), caps.scrap),
-      }));
+      const newResources = {
+        ...resourcesRef.current,
+        scrap: Math.min(resourcesRef.current.scrap + (reward.amount || 0), caps.scrap),
+      };
+      resourcesRef.current = newResources;
+      setResources(newResources);
     }
 
     // Proceed to next wave or game over
@@ -485,25 +478,27 @@ function App() {
     setInventoryModules((prev) => prev.filter((m) => m.instanceId !== module.instanceId));
     // Add to placed with position
     const placedModule = { ...module, gridX: x, gridY: y };
-    setPlacedModules((prev) => [...prev, placedModule]);
-    // Visual effect for module placement (optional)
-    // Could spawn particles or play animation here
+    const newModules = [...modulesRef.current, placedModule];
+    modulesRef.current = newModules;
+    setPlacedModules(newModules);
   };
 
   const handleModuleMoved = (moduleId: string, x: number, y: number) => {
-    setPlacedModules((prev) =>
-      prev.map((m) =>
-        m.instanceId === moduleId ? { ...m, gridX: x, gridY: y } : m
-      )
+    const newModules = modulesRef.current.map((m) =>
+      m.instanceId === moduleId ? { ...m, gridX: x, gridY: y } : m
     );
+    modulesRef.current = newModules;
+    setPlacedModules(newModules);
   };
 
   const handleModuleRemoved = (moduleId: string) => {
-    const module = placedModules.find((m) => m.instanceId === moduleId);
+    const module = modulesRef.current.find((m) => m.instanceId === moduleId);
     if (!module) return;
 
     // Remove from placed
-    setPlacedModules((prev) => prev.filter((m) => m.instanceId !== moduleId));
+    const newModules = modulesRef.current.filter((m) => m.instanceId !== moduleId);
+    modulesRef.current = newModules;
+    setPlacedModules(newModules);
     // Add back to inventory (remove grid position)
     const { gridX, gridY, ...moduleWithoutPos } = module;
     setInventoryModules((prev) => [...prev, moduleWithoutPos as ModuleInstance]);
@@ -517,33 +512,39 @@ function App() {
     setInventoryModules((prev) => prev.filter((m) => m.instanceId !== moduleId));
     // Give scrap based on rarity
     const scrapGain = module.rarity === 'rare' ? 15 : module.rarity === 'uncommon' ? 10 : 5;
-    setResources((prev) => ({ ...prev, scrap: Math.min(prev.scrap + scrapGain, caps.scrap) }));
+    const newResources = {
+      ...resourcesRef.current,
+      scrap: Math.min(resourcesRef.current.scrap + scrapGain, caps.scrap)
+    };
+    resourcesRef.current = newResources;
+    setResources(newResources);
   };
 
   // Combat handlers
   const handleBaseHit = (damage: number) => {
-    setResources((prev) => ({
-      ...prev,
-      baseHP: Math.max(0, prev.baseHP - damage),
-    }));
+    const newResources = {
+      ...resourcesRef.current,
+      baseHP: Math.max(0, resourcesRef.current.baseHP - damage),
+    };
+    resourcesRef.current = newResources;
+    setResources(newResources);
 
     setEventLog((prev) => [`⚠️ Base took ${damage} damage!`, ...prev].slice(0, 20));
 
     // Check game over
-    setResources((prev) => {
-      if (prev.baseHP <= 0) {
-        setPhase('gameOver');
-      }
-      return prev;
-    });
+    if (newResources.baseHP <= 0) {
+      setPhase('gameOver');
+    }
   };
 
   const handleEnemyKilled = (_enemyId: string) => {
     // Give scrap for kill
-    setResources((prev) => ({
-      ...prev,
-      scrap: Math.min(prev.scrap + 1, caps.scrap),
-    }));
+    const newResources = {
+      ...resourcesRef.current,
+      scrap: Math.min(resourcesRef.current.scrap + 1, caps.scrap),
+    };
+    resourcesRef.current = newResources;
+    setResources(newResources);
 
     setEventLog((prev) => [`💀 Enemy killed +1 scrap`, ...prev].slice(0, 20));
   };
