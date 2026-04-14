@@ -28,10 +28,10 @@ function schoolFromPassive(passive: 'stone' | 'wind'): 'Stone' | 'Wind' {
   return passive === 'stone' ? 'Stone' : 'Wind';
 }
 
-function flowLabel(state: DuelState): string {
+function duelStatus(state: DuelState): string {
   if (state.winner) return labelWinner(state);
-  if (state.fighters.player.hand.length === 0) return 'Choose three techniques to begin the exchange.';
-  return `Exchange ${state.exchange} · Beat ${state.beat} / 3`;
+  if (state.fighters.player.hand.length === 0) return `Exchange ${state.exchange} setup`;
+  return `Exchange ${state.exchange}`;
 }
 
 function motifForCard(card: CardDefinition): string {
@@ -57,8 +57,23 @@ function keywordLabel(card: CardDefinition): string {
 
 function moveLabel(move: number): string {
   if (move === 0) return '0';
-  if (move > 0) return `Open +${move}`;
+  if (move > 0) return `+${move}`;
+  return `-${Math.abs(move)}`;
+}
+
+function moveSummary(move: number): string {
+  if (move === 0) return 'Hold';
+  if (move > 0) return `Open ${move}`;
   return `Close ${Math.abs(move)}`;
+}
+
+function flowDots(flow: number): string {
+  const capped = Math.max(0, Math.min(3, flow));
+  return '◆'.repeat(capped) + '◇'.repeat(3 - capped);
+}
+
+function cardReminder(card: CardDefinition): string {
+  return `${card.name} · ${tagMeta[card.tags[0]].short} · SPD ${card.speed} · R${card.rank} · DMG ${card.damage} · GRD ${card.guard} · Move ${moveSummary(card.move)} · Hit ${hitLabel(card.hit)} · ${keywordLabel(card)}`;
 }
 
 export function App() {
@@ -82,12 +97,12 @@ export function App() {
     : null;
 
   const firstResolver = useMemo(() => {
-    if (!lastCards) return 'Awaiting first clash';
+    if (!lastCards) return state.fighters.player.initiative ? 'You open tie' : 'Rival opens tie';
     if (lastCards.player.speed === lastCards.ai.speed) {
-      return state.fighters.player.initiative ? 'You resolve first (initiative tie-break)' : 'Rival resolves first (initiative tie-break)';
+      return state.fighters.player.initiative ? 'You open tie' : 'Rival opens tie';
     }
 
-    return lastCards.player.speed < lastCards.ai.speed ? 'You resolve first (lower speed)' : 'Rival resolves first (lower speed)';
+    return lastCards.player.speed < lastCards.ai.speed ? 'You first' : 'Rival first';
   }, [lastCards, state.fighters.player.initiative]);
 
   const onStartExchange = () => {
@@ -124,26 +139,33 @@ export function App() {
     const fighter = state.fighters[id];
     const hpPct = Math.max(0, (fighter.hp / 20) * 100);
     const school = schoolFromPassive(fighter.passive);
+    const hasInitiative = fighter.initiative;
+    const activeArm = fighter.armed;
 
     return (
-      <article className={`duelist ${id === 'player' ? 'isPlayer' : 'isEnemy'}`}>
+      <article className={`duelist ${id === 'player' ? 'isPlayer' : 'isEnemy'} ${hasInitiative ? 'hasInitiative' : ''}`}>
         <div className="duelistFigure" aria-hidden>
           <div className="duelistHalo" />
           <div className="duelistBody">{school === 'Stone' ? '⛰' : '風'}</div>
+          {hasInitiative && <span className="initiativeCrown">♛</span>}
         </div>
         <div className="duelistHud">
           <div className="duelistHead">
             <h2>{id === 'player' ? 'You' : 'Rival'}</h2>
-            <span className="duelistSchool">{school}</span>
+            <span className="duelistSchool" aria-label={`School ${school}`}>
+              {school === 'Stone' ? '⛰' : '風'}
+            </span>
           </div>
           <div className="hpRail" role="img" aria-label={`${id} hp ${fighter.hp} out of 20`}>
             <div className="hpNow" style={{ width: `${hpPct}%` }} />
             <span>{fighter.hp} / 20</span>
           </div>
-          <div className="duelistChips">
-            <span className={`hudChip ${fighter.initiative ? 'active' : ''}`}>⦿ Initiative</span>
-            <span className="hudChip">◌ Flow {fighter.flow}</span>
-            <span className={`hudChip ${fighter.armed ? 'active armed' : ''}`}>{fighter.armed ? `⌛ ${fighter.armed.name}` : '⌛ Arm —'}</span>
+          <div className="duelistCompact">
+            <span className={`flowGem ${fighter.flow > 0 ? 'active' : ''}`} title={`Flow ${fighter.flow} / 3`}>
+              {flowDots(fighter.flow)}
+              {fighter.flow > 0 && <em>{fighter.flow}</em>}
+            </span>
+            {activeArm && <span className="armChip">⌛ {activeArm.name}</span>}
           </div>
         </div>
       </article>
@@ -155,46 +177,56 @@ export function App() {
     const leadTag = card.tags[0];
 
     return (
-      <button className={`techCard tag${leadTag} ${selected ? 'selected' : ''}`} key={cardId} onClick={onClick}>
+      <button
+        className={`techCard tag${leadTag} ${selected ? 'selected' : ''}`}
+        key={cardId}
+        onClick={onClick}
+        title={cardReminder(card)}
+      >
         <div className="cardTopBar">
-          <div className="nameBlock">
-            <span className="tagBadge">
-              {tagMeta[leadTag].icon} {tagMeta[leadTag].short}
-            </span>
-            <strong>{card.name}</strong>
-          </div>
+          <strong>{card.name}</strong>
           <div className="tempoBadges">
             <span>⚡{card.speed}</span>
             <span>R{card.rank}</span>
           </div>
         </div>
 
+        <div className="cardTagRow">
+          <span className="tagBadge">
+            {tagMeta[leadTag].icon} {tagMeta[leadTag].short}
+          </span>
+        </div>
+
         <div className="motifArea" aria-hidden>
           <span>{motifForCard(card)}</span>
         </div>
 
-        <div className="primaryEffectRow">
+        <div className="statRow">
           <span>⚔ {card.damage}</span>
           <span>🛡 {card.guard}</span>
           <span>↔ {moveLabel(card.move)}</span>
         </div>
 
-        <div className="cardBottomStrips">
+        <div className="metaRow">
           <span>◎ {hitLabel(card.hit)}</span>
           <span>✶ {keywordLabel(card)}</span>
         </div>
+
+        <div className="cardPeek">{cardReminder(card)}</div>
       </button>
     );
   };
 
   const currentHand = phase === 'keep' ? state.fighters.player.draw : state.fighters.player.hand;
 
+  const selectedCount = phase === 'keep' ? selectedKeep.length : selectedBeatCard ? 1 : 0;
+
   return (
     <main className="app">
       <section className="duelStage">
         <div className="stageTopline">
           <span className="stageChip">Stormlit Courtyard</span>
-          <span className="stageChip stageStatus">{flowLabel(state)}</span>
+          <span className="stageChip stageStatus">{duelStatus(state)}</span>
           <label className="fastResolveToggle">
             <input
               type="checkbox"
@@ -204,7 +236,7 @@ export function App() {
                 setState({ ...state });
               }}
             />
-            Fast Resolve
+            Fast
           </label>
         </div>
 
@@ -212,15 +244,17 @@ export function App() {
           {actorStatus('ai')}
 
           <div className="rangeTotem" role="status" aria-live="polite">
-            <p>Shared Range</p>
-            <div className="rangeStones">
+            <div className="rangeReadout">
               {rangeBands.map((band) => (
                 <span key={band} className={`stone ${state.range === band ? 'active' : ''}`}>
-                  {band}
+                  {band.slice(0, 1)}
                 </span>
               ))}
             </div>
-            <small>Beat {state.beat} / 3</small>
+            <strong>{state.range}</strong>
+            <small>
+              Beat {state.beat}/3
+            </small>
           </div>
 
           {actorStatus('player')}
@@ -229,48 +263,46 @@ export function App() {
 
       <section className="clashLane" aria-live="polite">
         <div className="laneTitle">
-          <h3>Clash Lane</h3>
-          <span>{latestLog ? `Resolved beat ${latestLog.beat}` : 'No revealed cards yet'}</span>
+          <h3>Clash</h3>
+          <span>{latestLog ? `Beat ${latestLog.beat}` : `Beat ${state.beat}`}</span>
         </div>
 
         <div className="clashCore">
           <article className="revealPane enemy">
-            <h4>Rival</h4>
             {lastCards ? (
               <>
                 <strong>{lastCards.ai.name}</strong>
                 <small>
-                  {tagMeta[lastCards.ai.tags[0]].icon} · ⚡{lastCards.ai.speed} · R{lastCards.ai.rank}
+                  {tagMeta[lastCards.ai.tags[0]].icon} ⚡{lastCards.ai.speed} · R{lastCards.ai.rank}
                 </small>
               </>
             ) : (
-              <small className="placeholder">Hidden technique</small>
+              <div className="facedown" aria-label="Rival card hidden" />
             )}
           </article>
 
           <div className="clashPulse">
-            <span>⚡</span>
-            <p>{firstResolver}</p>
+            <span>{firstResolver}</span>
+            {latestLog && <small>{latestLog.events.slice(0, 2).join(' · ')}</small>}
           </div>
 
           <article className="revealPane player">
-            <h4>You</h4>
             {lastCards ? (
               <>
                 <strong>{lastCards.player.name}</strong>
                 <small>
-                  {tagMeta[lastCards.player.tags[0]].icon} · ⚡{lastCards.player.speed} · R{lastCards.player.rank}
+                  {tagMeta[lastCards.player.tags[0]].icon} ⚡{lastCards.player.speed} · R{lastCards.player.rank}
                 </small>
               </>
             ) : (
-              <small className="placeholder">Choose and reveal</small>
+              <div className="facedown" aria-label="Your card hidden" />
             )}
           </article>
         </div>
 
         {latestLog && (
           <ul className="eventRibbon">
-            {latestLog.events.slice(0, 4).map((event, i) => (
+            {latestLog.events.slice(0, 3).map((event, i) => (
               <li key={`${event}-${i}`}>{event}</li>
             ))}
           </ul>
@@ -280,28 +312,24 @@ export function App() {
       {phase !== 'end' && (
         <section className="handZone">
           <div className="handHeader">
-            <h2>{phase === 'keep' ? 'Choose 3 Techniques' : 'Hand of Techniques'}</h2>
-            <span>{phase === 'keep' ? `${selectedKeep.length} / 3 prepared` : `Beat ${state.beat} · ${state.fighters.player.hand.length} left`}</span>
+            <h2>{phase === 'keep' ? 'Keep 3' : 'Choose 1'}</h2>
+            <span>{phase === 'keep' ? `${selectedCount}/3` : `${state.fighters.player.hand.length} cards`}</span>
           </div>
 
-          <div className="preparedRow">
-            {phase === 'keep' ? (
-              selectedKeep.length > 0 ? (
-                selectedKeep.map((id) => <em key={id}>{getCard(id).name}</em>)
-              ) : (
-                <small>No techniques prepared.</small>
+          <div className={`handRail ${phase}`}>
+            {currentHand.map((id) =>
+              renderCard(id, phase === 'keep' ? selectedKeep.includes(id) : selectedBeatCard === id, () =>
+                phase === 'keep' ? pickKeep(id) : setSelectedBeatCard(id)
               )
-            ) : selectedBeatCard ? (
-              <em>{getCard(selectedBeatCard).name}</em>
-            ) : (
-              <small>Select one technique to reveal.</small>
             )}
           </div>
 
-          <div className={`handRail ${phase}`}>{currentHand.map((id) => renderCard(id, phase === 'keep' ? selectedKeep.includes(id) : selectedBeatCard === id, () => (phase === 'keep' ? pickKeep(id) : setSelectedBeatCard(id))))}</div>
-
-          <button className="primaryButton revealButton" disabled={phase === 'keep' ? selectedKeep.length !== 3 : !selectedBeatCard} onClick={phase === 'keep' ? onStartExchange : onResolveBeat}>
-            {phase === 'keep' ? 'Lock Techniques' : 'Reveal Simultaneously'}
+          <button
+            className="primaryButton revealButton"
+            disabled={phase === 'keep' ? selectedKeep.length !== 3 : !selectedBeatCard}
+            onClick={phase === 'keep' ? onStartExchange : onResolveBeat}
+          >
+            {phase === 'keep' ? 'Lock In' : 'Reveal'}
           </button>
         </section>
       )}
