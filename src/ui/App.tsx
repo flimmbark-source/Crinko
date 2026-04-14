@@ -28,7 +28,7 @@ const termGlossary: Array<{ term: string; detail: string }> = [
   { term: 'Cash Out', detail: 'Consumes all current Flow for a stronger effect.' },
   { term: 'Bridge', detail: 'Rank * can count as any rank for Flow sequencing.' },
   { term: 'Break', detail: 'Reduces enemy Flow by the shown amount.' },
-  { term: 'Core', detail: 'No special keyword effect. Uses only base stats and hit rules.' }
+  { term: 'Hold', detail: 'No movement this beat. Useful for staying in range while guarding.' }
 ];
 
 const termLookup = new Map(termGlossary.map((entry) => [entry.term, entry.detail]));
@@ -46,8 +46,8 @@ function schoolFromPassive(passive: 'stone' | 'wind'): 'Stone' | 'Wind' {
 
 function duelStatus(state: DuelState): string {
   if (state.winner) return labelWinner(state);
-  if (state.fighters.player.hand.length === 0) return `Exchange ${state.exchange} setup`;
-  return `Exchange ${state.exchange}`;
+  if (state.fighters.player.hand.length === 0) return `Exchange ${state.exchange} · setup`;
+  return `Exchange ${state.exchange} · Beat ${state.beat}`;
 }
 
 function motifForCard(card: CardDefinition): string {
@@ -61,14 +61,15 @@ function hitLabel(hit: CardDefinition['hit']): string {
   return hit;
 }
 
-function keywordLabel(card: CardDefinition): string {
+function keywordLabel(card: CardDefinition): string | null {
   if (card.rank === '*') return 'Bridge';
   if (card.cashOutFlow) return 'Cash Out';
   if (card.reduceEnemyFlow) return `Break ${card.reduceEnemyFlow}`;
   if (card.flowDamageBonus) return 'Flow +1';
   if (card.gainInitiativeOnReveal) return 'Tempo';
   if (card.arm) return `Arm ${card.arm.triggerBeatOffset}`;
-  return 'Core';
+  if (card.damage === 0 && card.guard > 0 && card.move === 0) return 'Hold';
+  return null;
 }
 
 function keywordExplanation(card: CardDefinition): string {
@@ -78,7 +79,8 @@ function keywordExplanation(card: CardDefinition): string {
   if (card.flowDamageBonus) return 'Flow +1: Deals +1 damage if your Flow is 1 or more.';
   if (card.gainInitiativeOnReveal) return 'Tempo: Gain initiative as soon as this card is revealed.';
   if (card.arm) return `Arm ${card.arm.triggerBeatOffset}: Sets an armed effect to trigger in ${card.arm.triggerBeatOffset} beat(s).`;
-  return termLookup.get('Core') ?? '';
+  if (card.damage === 0 && card.guard > 0 && card.move === 0) return termLookup.get('Hold') ?? '';
+  return 'No extra keyword effect.';
 }
 
 function moveLabel(move: number): string {
@@ -125,7 +127,7 @@ export function App() {
     : null;
 
   const clashSummary = useMemo(() => {
-    if (!lastCards) return 'Cards are hidden until reveal.';
+    if (!lastCards) return '';
     return firstActionLabel(lastCards.player, lastCards.ai, state.fighters.player.initiative);
   }, [lastCards, state.fighters.player.initiative]);
 
@@ -227,6 +229,14 @@ export function App() {
   const renderCard = (cardId: string, selected: boolean, onSelect: () => void) => {
     const card = getCard(cardId);
     const leadTag = card.tags[0];
+    const hook = keywordLabel(card);
+    const visibleStats = [
+      card.damage > 0 ? `Damage ${card.damage}` : null,
+      card.guard > 0 ? `Guard ${card.guard}` : null,
+      card.move !== 0 ? moveLabel(card.move) : null,
+      card.hit !== 'None' ? `Hit ${hitLabel(card.hit)}` : null,
+      hook ? hook : null
+    ].filter((item): item is string => Boolean(item));
 
     return (
       <button
@@ -267,15 +277,12 @@ export function App() {
           <span>{motifForCard(card)}</span>
         </div>
 
-        <div className="statRow">
-          <span>⚔ {card.damage}</span>
-          <span>🛡 {card.guard}</span>
-          <span>{moveLabel(card.move)}</span>
-        </div>
-
-        <div className="metaRow">
-          <span>◎ {hitLabel(card.hit)}</span>
-          <span>{keywordLabel(card)}</span>
+        <div className="cardFacts" aria-label="Card highlights">
+          {visibleStats.map((item) => (
+            <span key={item} className="factChip">
+              {item}
+            </span>
+          ))}
         </div>
       </button>
     );
@@ -329,11 +336,6 @@ export function App() {
       </section>
 
       <section className="clashLane" aria-live="polite">
-        <div className="laneTitle">
-          <h3>Clash</h3>
-          <span>{latestLog ? `Beat ${latestLog.beat}` : `Beat ${state.beat}`}</span>
-        </div>
-
         <div className="clashCore">
           <article className="revealPane enemy">
             {lastCards ? (
@@ -349,7 +351,7 @@ export function App() {
           </article>
 
           <div className="clashPulse">
-            <span>{clashSummary}</span>
+            {clashSummary && <span>{clashSummary}</span>}
             {latestLog && latestLog.events[0] && <small>{latestLog.events[0]}</small>}
           </div>
 
@@ -372,7 +374,7 @@ export function App() {
         <section className="handZone">
           <div className="handHeader">
             <h2>{phase === 'keep' ? 'Keep 3' : 'Choose 1'}</h2>
-            <span>{phase === 'keep' ? `${selectedCount}/3` : `${state.fighters.player.hand.length} cards`}</span>
+            <span>{phase === 'keep' ? `${selectedCount}/3` : selectedBeatCard ? '1 selected' : 'Pick a card'}</span>
           </div>
 
           <div className={`handRail ${phase}`}>
@@ -431,7 +433,10 @@ export function App() {
                 <strong>Hit:</strong> This card can hit at <em>{hitLabel(focusedCard.hit)}</em> range.
               </p>
               <p>
-                <strong>Keyword:</strong> {keywordLabel(focusedCard)} — {keywordExplanation(focusedCard)}
+                <strong>Keyword:</strong> {keywordLabel(focusedCard) ?? 'None'} — {keywordExplanation(focusedCard)}
+              </p>
+              <p>
+                <strong>Full data:</strong> Damage {focusedCard.damage}, Guard {focusedCard.guard}, Move {focusedCard.move}, Hit {hitLabel(focusedCard.hit)}.
               </p>
               {(focusedCard.cashOutFlow || focusedCard.flowDamageBonus || focusedCard.reduceEnemyFlow || focusedCard.arm) && (
                 <p>
