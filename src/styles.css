@@ -32,12 +32,12 @@ button {
 }
 
 .app {
-  width: min(1160px, 100%);
+  width: min(1100px, 100%);
   height: 100dvh;
   margin: 0 auto;
   padding: clamp(6px, 1.2dvh, 10px);
   display: grid;
-  grid-template-rows: minmax(150px, 31dvh) minmax(94px, 16dvh) minmax(220px, 1fr);
+  grid-template-rows: minmax(152px, 31dvh) minmax(94px, 16dvh) minmax(220px, 1fr);
   gap: clamp(5px, 0.8dvh, 8px);
 }
 
@@ -66,10 +66,10 @@ button {
 }
 
 .stageChip {
-  font-size: 0.58rem;
+  font-size: 0.64rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid rgba(234, 204, 165, 0.25);
   background: rgba(6, 9, 14, 0.55);
@@ -81,20 +81,30 @@ button {
   text-align: center;
 }
 
+.helpButton,
+.miniInfoChip {
+  border-radius: 999px;
+  border: 1px solid rgba(237, 206, 167, 0.35);
+  background: rgba(12, 16, 24, 0.85);
+  color: #f7e5cb;
+  padding: 3px 8px;
+  font-size: 0.64rem;
+}
+
 .fastResolveToggle {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.56rem;
+  font-size: 0.6rem;
   color: #ddc5a5;
 }
 
 .sceneField {
-  height: calc(100% - 28px);
+  height: calc(100% - 30px);
   display: grid;
-  grid-template-columns: 1fr minmax(80px, 104px) 1fr;
-  gap: 6px;
+  grid-template-columns: 1fr minmax(88px, 114px) 1fr;
+  gap: 8px;
   align-items: end;
 }
 
@@ -154,7 +164,7 @@ button {
   position: relative;
   margin-top: auto;
   border-radius: 10px;
-  padding: 6px;
+  padding: 7px;
   background: linear-gradient(185deg, rgba(15, 19, 28, 0.88), rgba(8, 10, 15, 0.92));
   border: 1px solid rgba(239, 212, 172, 0.2);
 }
@@ -167,18 +177,18 @@ button {
 
 .duelistHead h2 {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.86rem;
 }
 
 .duelistSchool {
-  font-size: 0.88rem;
+  font-size: 0.64rem;
   color: #dfc69f;
 }
 
 .hpRail {
-  margin-top: 4px;
+  margin-top: 5px;
   position: relative;
-  height: 16px;
+  height: 18px;
   border-radius: 999px;
   overflow: hidden;
   border: 1px solid rgba(229, 191, 151, 0.42);
@@ -196,47 +206,21 @@ button {
   z-index: 1;
   display: block;
   text-align: center;
-  font-size: 0.62rem;
-  line-height: 15px;
+  font-size: 0.72rem;
+  line-height: 17px;
 }
 
 .duelistCompact {
-  margin-top: 4px;
+  margin-top: 5px;
+  min-height: 22px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 4px;
-}
-
-.flowGem {
-  border-radius: 999px;
-  border: 1px solid rgba(234, 204, 165, 0.26);
-  color: #b89d7f;
-  padding: 1px 7px;
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.flowGem em {
-  font-style: normal;
-  font-size: 0.54rem;
-}
-
-.flowGem.active {
-  color: #ffe0b7;
-  border-color: rgba(255, 198, 117, 0.6);
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .armChip {
-  font-size: 0.54rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 194, 111, 0.42);
+  border-color: rgba(255, 194, 111, 0.42);
   color: #ffd9a1;
-  padding: 1px 6px;
-  background: rgba(38, 24, 16, 0.55);
 }
 
 .rangeTotem {
@@ -250,18 +234,18 @@ button {
 .rangeReadout {
   display: flex;
   justify-content: center;
-  gap: 3px;
-  margin-bottom: 3px;
+  gap: 4px;
+  margin: 4px 0;
 }
 
 .stone {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   border: 1px solid rgba(227, 200, 166, 0.2);
   display: grid;
   place-items: center;
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   color: #af9a7f;
 }
 
@@ -273,17 +257,17 @@ button {
 
 .rangeTotem strong {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 .rangeTotem small {
   display: block;
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   color: #ceb393;
 }
 
 .clashLane {
-  padding: 6px;
+  padding: 7px;
   background:
     linear-gradient(180deg, rgba(23, 16, 12, 0.2), rgba(9, 12, 19, 0.95)),
     linear-gradient(90deg, rgba(98, 56, 35, 0.2), rgba(27, 35, 47, 0.2));
@@ -298,23 +282,23 @@ button {
 
 .laneTitle h3 {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
 }
 
 .laneTitle span {
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   color: #c8af90;
 }
 
 .clashCore {
   display: grid;
-  grid-template-columns: 1fr 112px 1fr;
+  grid-template-columns: 1fr 124px 1fr;
   gap: 6px;
   align-items: stretch;
 }
 
 .revealPane {
-  min-height: 58px;
+  min-height: 60px;
   border-radius: 10px;
   padding: 6px;
   display: grid;
@@ -324,11 +308,11 @@ button {
 }
 
 .revealPane strong {
-  font-size: 0.74rem;
+  font-size: 0.78rem;
 }
 
 .revealPane small {
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   color: #c3b097;
 }
 
@@ -337,14 +321,13 @@ button {
   height: 42px;
   border-radius: 8px;
   border: 1px dashed rgba(225, 195, 160, 0.36);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(50, 58, 70, 0.55),
-      rgba(50, 58, 70, 0.55) 6px,
-      rgba(21, 26, 35, 0.8) 6px,
-      rgba(21, 26, 35, 0.8) 12px
-    );
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(50, 58, 70, 0.55),
+    rgba(50, 58, 70, 0.55) 6px,
+    rgba(21, 26, 35, 0.8) 6px,
+    rgba(21, 26, 35, 0.8) 12px
+  );
 }
 
 .clashPulse {
@@ -359,37 +342,13 @@ button {
 }
 
 .clashPulse span {
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   color: #ffe2bb;
 }
 
 .clashPulse small {
-  font-size: 0.54rem;
+  font-size: 0.56rem;
   color: #ceb293;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.eventRibbon {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  gap: 4px;
-  overflow: hidden;
-}
-
-.eventRibbon li {
-  white-space: nowrap;
-  font-size: 0.54rem;
-  color: #dcc6a6;
-  border: 1px solid rgba(255, 186, 113, 0.38);
-  border-radius: 999px;
-  padding: 1px 6px;
-  background: rgba(18, 12, 9, 0.4);
 }
 
 .handZone,
@@ -411,11 +370,11 @@ button {
 
 .handHeader h2 {
   margin: 0;
-  font-size: 0.76rem;
+  font-size: 0.88rem;
 }
 
 .handHeader span {
-  font-size: 0.58rem;
+  font-size: 0.66rem;
   color: #c9b091;
 }
 
@@ -429,11 +388,11 @@ button {
 
 .techCard {
   position: relative;
-  width: clamp(104px, 17.2vw, 174px);
+  width: clamp(108px, 18vw, 172px);
   aspect-ratio: 5 / 7;
   border: 1px solid rgba(232, 206, 173, 0.28);
   border-radius: 12px;
-  padding: 7px 6px 6px;
+  padding: 8px 7px;
   text-align: left;
   color: #f4ebdd;
   background:
@@ -441,13 +400,13 @@ button {
     linear-gradient(180deg, rgba(11, 14, 20, 0.94), rgba(8, 10, 15, 0.96));
   display: grid;
   grid-template-rows: auto auto 1fr auto auto;
-  gap: 5px;
+  gap: 6px;
   transition: transform 130ms ease, border-color 130ms ease;
   flex: 0 0 auto;
 }
 
 .techCard + .techCard {
-  margin-left: clamp(-14px, -1.8vw, -8px);
+  margin-left: clamp(-12px, -1.5vw, -8px);
 }
 
 .techCard:hover,
@@ -464,12 +423,13 @@ button {
 .cardTopBar {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 4px;
 }
 
 .cardTopBar strong {
-  font-size: 0.82rem;
-  line-height: 1.1;
+  font-size: 0.95rem;
+  line-height: 1.15;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -477,30 +437,33 @@ button {
   overflow: hidden;
 }
 
-.tempoBadges {
+.cardInfoButton {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 201, 161, 0.42);
+  color: #f6dfbe;
+  background: rgba(9, 13, 20, 0.8);
+  font-size: 0.68rem;
   display: grid;
-  gap: 3px;
+  place-items: center;
 }
 
-.tempoBadges span {
-  font-size: 0.63rem;
+.cardIdentityRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.tagBadge,
+.pillButton {
+  font-size: 0.68rem;
   border-radius: 999px;
-  border: 1px solid rgba(236, 211, 179, 0.35);
-  padding: 1px 5px;
-  text-align: center;
-}
-
-.cardTagRow {
-  display: flex;
-}
-
-.tagBadge {
-  width: fit-content;
-  font-size: 0.6rem;
-  border-radius: 999px;
-  padding: 1px 7px;
+  padding: 2px 7px;
   border: 1px solid rgba(231, 206, 171, 0.35);
   color: #e3caab;
+  background: rgba(20, 15, 12, 0.35);
 }
 
 .motifArea {
@@ -512,9 +475,9 @@ button {
 }
 
 .motifArea span {
-  font-size: 1.45rem;
-  letter-spacing: 0.16em;
-  color: rgba(242, 220, 187, 0.88);
+  font-size: 1.55rem;
+  letter-spacing: 0.18em;
+  color: rgba(242, 220, 187, 0.9);
 }
 
 .statRow,
@@ -533,32 +496,12 @@ button {
 
 .statRow span,
 .metaRow span {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   border-radius: 999px;
   border: 1px solid rgba(234, 202, 163, 0.3);
-  padding: 2px 4px;
+  padding: 3px 4px;
   text-align: center;
   background: rgba(20, 15, 12, 0.35);
-}
-
-.cardPeek {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: calc(100% + 6px);
-  z-index: 2;
-  border-radius: 8px;
-  border: 1px solid rgba(245, 206, 159, 0.5);
-  background: rgba(8, 11, 17, 0.96);
-  color: #f0dfc6;
-  font-size: 0.58rem;
-  padding: 5px;
-  display: none;
-}
-
-.techCard:hover .cardPeek,
-.techCard:focus-visible .cardPeek {
-  display: block;
 }
 
 .tagAttack .tagBadge {
@@ -579,14 +522,101 @@ button {
   border-radius: 11px;
   background: linear-gradient(180deg, #af613d, #7d462a);
   color: #fff2dd;
-  padding: 6px;
-  font-size: 0.75rem;
+  padding: 7px;
+  font-size: 0.82rem;
   font-weight: 650;
 }
 
 .primaryButton:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.overlayBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 3, 8, 0.72);
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+}
+
+.cardDetailPanel,
+.helpPanel {
+  width: min(640px, 100%);
+  max-height: min(88dvh, 760px);
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(244, 208, 162, 0.34);
+  background: linear-gradient(180deg, rgba(13, 17, 26, 0.98), rgba(6, 9, 14, 0.98));
+  padding: 12px;
+}
+
+.cardDetailPanel header,
+.helpPanel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cardDetailPanel h3,
+.helpPanel h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.cardDetailPanel header button,
+.helpPanel header button {
+  border-radius: 999px;
+  border: 1px solid rgba(234, 201, 161, 0.42);
+  color: #f6dfbe;
+  background: rgba(9, 13, 20, 0.8);
+  padding: 4px 10px;
+}
+
+.detailMeta {
+  margin: 0 0 8px;
+  color: #cfb591;
+  font-size: 0.78rem;
+}
+
+.detailGrid p {
+  margin: 0 0 7px;
+  font-size: 0.86rem;
+  color: #f2e2ca;
+}
+
+.helpPanel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.helpPanel li {
+  border-radius: 10px;
+  border: 1px solid rgba(233, 200, 158, 0.23);
+  padding: 8px;
+  background: rgba(24, 18, 13, 0.36);
+}
+
+.helpPanel li.focused {
+  border-color: rgba(254, 202, 131, 0.6);
+  box-shadow: 0 0 0 1px rgba(254, 202, 131, 0.3);
+}
+
+.helpPanel li strong {
+  font-size: 0.82rem;
+}
+
+.helpPanel li p {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  color: #efdcc0;
 }
 
 .endPanel h2,
@@ -613,8 +643,8 @@ button {
   }
 
   .techCard {
-    width: clamp(76px, 19vw, 112px);
-    padding: 5px;
+    width: clamp(78px, 19vw, 112px);
+    padding: 6px;
     gap: 4px;
   }
 
@@ -623,25 +653,25 @@ button {
   }
 
   .cardTopBar strong {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 
-  .tempoBadges span,
   .tagBadge,
+  .pillButton,
   .statRow span,
   .metaRow span {
-    font-size: 0.52rem;
+    font-size: 0.58rem;
   }
 
   .motifArea span {
-    font-size: 1.05rem;
+    font-size: 1.12rem;
   }
 }
 
 @media (max-width: 560px) {
   .sceneField {
-    grid-template-columns: 1fr 74px 1fr;
-    gap: 4px;
+    grid-template-columns: 1fr 76px 1fr;
+    gap: 5px;
   }
 
   .duelistBody {
@@ -651,11 +681,11 @@ button {
   }
 
   .clashCore {
-    grid-template-columns: 1fr 90px 1fr;
+    grid-template-columns: 1fr 96px 1fr;
   }
 
   .techCard {
-    width: clamp(66px, 18.8vw, 82px);
+    width: clamp(68px, 18.8vw, 84px);
     border-radius: 10px;
   }
 
@@ -663,7 +693,9 @@ button {
     margin-left: 0;
   }
 
-  .cardPeek {
-    display: none !important;
+  .helpButton,
+  .miniInfoChip,
+  .fastResolveToggle {
+    font-size: 0.54rem;
   }
 }
