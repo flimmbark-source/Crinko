@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { chooseAiBeatCard, chooseAiKeep } from '../game/ai/opponent';
 import { getCard, initDuel, keepCards, resolveBeat } from '../game/engine/core';
 import type { CardDefinition, DuelState, PlayerId, RangeBand, Tag } from '../game/engine/types';
@@ -16,6 +16,22 @@ const tagMeta: Record<Tag, { icon: string; short: string }> = {
   Defense: { icon: '🛡', short: 'DEF' },
   Trick: { icon: '✦', short: 'TRK' }
 };
+
+const termGlossary: Array<{ term: string; detail: string }> = [
+  { term: 'Flow', detail: 'A momentum meter from 0 to 3. Reveal higher ranks in sequence to build it.' },
+  { term: 'Armed', detail: 'A delayed effect set by an Arm card. It triggers at end of a later beat.' },
+  { term: 'Initiative', detail: 'Wins speed ties. If no one deals damage in a beat, initiative swaps.' },
+  { term: 'Rank', detail: 'Card rank (1, 2, 3, or *). Higher effective rank helps build Flow.' },
+  { term: 'Speed', detail: 'Lower speed acts first in a beat.' },
+  { term: 'Hit', detail: 'Which range this card can strike at: Near, Mid, Far, or Mid/Far.' },
+  { term: 'Close / Open', detail: 'Move toward the enemy (Close) or away from the enemy (Open).' },
+  { term: 'Cash Out', detail: 'Consumes all current Flow for a stronger effect.' },
+  { term: 'Bridge', detail: 'Rank * can count as any rank for Flow sequencing.' },
+  { term: 'Break', detail: 'Reduces enemy Flow by the shown amount.' },
+  { term: 'Core', detail: 'No special keyword effect. Uses only base stats and hit rules.' }
+];
+
+const termLookup = new Map(termGlossary.map((entry) => [entry.term, entry.detail]));
 
 function labelWinner(state: DuelState): string {
   if (state.winner === 'draw') return 'Draw';
@@ -55,13 +71,17 @@ function keywordLabel(card: CardDefinition): string {
   return 'Core';
 }
 
-function moveLabel(move: number): string {
-  if (move === 0) return '0';
-  if (move > 0) return `+${move}`;
-  return `-${Math.abs(move)}`;
+function keywordExplanation(card: CardDefinition): string {
+  if (card.rank === '*') return termLookup.get('Bridge') ?? '';
+  if (card.cashOutFlow) return termLookup.get('Cash Out') ?? '';
+  if (card.reduceEnemyFlow) return `Break ${card.reduceEnemyFlow}: Reduce enemy Flow by ${card.reduceEnemyFlow}.`;
+  if (card.flowDamageBonus) return 'Flow +1: Deals +1 damage if your Flow is 1 or more.';
+  if (card.gainInitiativeOnReveal) return 'Tempo: Gain initiative as soon as this card is revealed.';
+  if (card.arm) return `Arm ${card.arm.triggerBeatOffset}: Sets an armed effect to trigger in ${card.arm.triggerBeatOffset} beat(s).`;
+  return termLookup.get('Core') ?? '';
 }
 
-function moveSummary(move: number): string {
+function moveLabel(move: number): string {
   if (move === 0) return 'Hold';
   if (move > 0) return `Open ${move}`;
   return `Close ${Math.abs(move)}`;
@@ -72,8 +92,12 @@ function flowDots(flow: number): string {
   return '◆'.repeat(capped) + '◇'.repeat(3 - capped);
 }
 
-function cardReminder(card: CardDefinition): string {
-  return `${card.name} · ${tagMeta[card.tags[0]].short} · SPD ${card.speed} · R${card.rank} · DMG ${card.damage} · GRD ${card.guard} · Move ${moveSummary(card.move)} · Hit ${hitLabel(card.hit)} · ${keywordLabel(card)}`;
+function firstActionLabel(playerCard: CardDefinition, aiCard: CardDefinition, playerHasInitiative: boolean): string {
+  if (playerCard.speed === aiCard.speed) {
+    return playerHasInitiative ? 'You act first (initiative tie-break).' : 'Rival acts first (initiative tie-break).';
+  }
+
+  return playerCard.speed < aiCard.speed ? 'You act first (lower speed).' : 'Rival acts first (lower speed).';
 }
 
 export function App() {
@@ -81,6 +105,10 @@ export function App() {
   const [selectedKeep, setSelectedKeep] = useState<string[]>([]);
   const [selectedBeatCard, setSelectedBeatCard] = useState<string | null>(null);
   const [postReward, setPostReward] = useState<string | null>(null);
+  const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [focusTerm, setFocusTerm] = useState<string | null>(null);
+  const longPressTimer = useRef<number | null>(null);
 
   const phase = useMemo(() => {
     if (state.winner) return 'end';
@@ -96,13 +124,9 @@ export function App() {
       }
     : null;
 
-  const firstResolver = useMemo(() => {
-    if (!lastCards) return state.fighters.player.initiative ? 'You open tie' : 'Rival opens tie';
-    if (lastCards.player.speed === lastCards.ai.speed) {
-      return state.fighters.player.initiative ? 'You open tie' : 'Rival opens tie';
-    }
-
-    return lastCards.player.speed < lastCards.ai.speed ? 'You first' : 'Rival first';
+  const clashSummary = useMemo(() => {
+    if (!lastCards) return 'Cards are hidden until reveal.';
+    return firstActionLabel(lastCards.player, lastCards.ai, state.fighters.player.initiative);
   }, [lastCards, state.fighters.player.initiative]);
 
   const onStartExchange = () => {
@@ -125,6 +149,9 @@ export function App() {
     setSelectedKeep([]);
     setSelectedBeatCard(null);
     setPostReward(null);
+    setFocusedCardId(null);
+    setHelpOpen(false);
+    setFocusTerm(null);
   };
 
   const pickKeep = (cardId: string) => {
@@ -133,6 +160,11 @@ export function App() {
       if (prev.length >= 3) return prev;
       return [...prev, cardId];
     });
+  };
+
+  const openHelp = (term?: string) => {
+    setHelpOpen(true);
+    setFocusTerm(term ?? null);
   };
 
   const actorStatus = (id: PlayerId) => {
@@ -149,30 +181,50 @@ export function App() {
           <div className="duelistBody">{school === 'Stone' ? '⛰' : '風'}</div>
           {hasInitiative && <span className="initiativeCrown">♛</span>}
         </div>
+
         <div className="duelistHud">
           <div className="duelistHead">
             <h2>{id === 'player' ? 'You' : 'Rival'}</h2>
-            <span className="duelistSchool" aria-label={`School ${school}`}>
-              {school === 'Stone' ? '⛰' : '風'}
-            </span>
+            <span className="duelistSchool">{school}</span>
           </div>
+
           <div className="hpRail" role="img" aria-label={`${id} hp ${fighter.hp} out of 20`}>
             <div className="hpNow" style={{ width: `${hpPct}%` }} />
-            <span>{fighter.hp} / 20</span>
+            <span>HP {fighter.hp}/20</span>
           </div>
+
           <div className="duelistCompact">
-            <span className={`flowGem ${fighter.flow > 0 ? 'active' : ''}`} title={`Flow ${fighter.flow} / 3`}>
-              {flowDots(fighter.flow)}
-              {fighter.flow > 0 && <em>{fighter.flow}</em>}
-            </span>
-            {activeArm && <span className="armChip">⌛ {activeArm.name}</span>}
+            {fighter.flow > 0 && (
+              <button className="miniInfoChip" onClick={() => openHelp('Flow')} title="Flow explanation">
+                {flowDots(fighter.flow)}
+              </button>
+            )}
+            {activeArm && (
+              <button className="miniInfoChip armChip" onClick={() => openHelp('Armed')} title="Armed explanation">
+                ⌛ Armed
+              </button>
+            )}
           </div>
         </div>
       </article>
     );
   };
 
-  const renderCard = (cardId: string, selected: boolean, onClick: () => void) => {
+  const onCardPointerDown = (cardId: string) => {
+    longPressTimer.current = window.setTimeout(() => {
+      setFocusedCardId(cardId);
+      longPressTimer.current = null;
+    }, 450);
+  };
+
+  const onCardPointerUp = () => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const renderCard = (cardId: string, selected: boolean, onSelect: () => void) => {
     const card = getCard(cardId);
     const leadTag = card.tags[0];
 
@@ -180,20 +232,34 @@ export function App() {
       <button
         className={`techCard tag${leadTag} ${selected ? 'selected' : ''}`}
         key={cardId}
-        onClick={onClick}
-        title={cardReminder(card)}
+        onClick={onSelect}
+        onPointerDown={() => onCardPointerDown(cardId)}
+        onPointerUp={onCardPointerUp}
+        onPointerLeave={onCardPointerUp}
       >
         <div className="cardTopBar">
           <strong>{card.name}</strong>
-          <div className="tempoBadges">
-            <span>⚡{card.speed}</span>
-            <span>R{card.rank}</span>
-          </div>
+          <button
+            className="cardInfoButton"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFocusedCardId(cardId);
+            }}
+            title="Open card details"
+          >
+            ?
+          </button>
         </div>
 
-        <div className="cardTagRow">
+        <div className="cardIdentityRow">
           <span className="tagBadge">
             {tagMeta[leadTag].icon} {tagMeta[leadTag].short}
+          </span>
+          <span className="pillButton">
+            ⚡ {card.speed}
+          </span>
+          <span className="pillButton">
+            R{card.rank}
           </span>
         </div>
 
@@ -204,29 +270,29 @@ export function App() {
         <div className="statRow">
           <span>⚔ {card.damage}</span>
           <span>🛡 {card.guard}</span>
-          <span>↔ {moveLabel(card.move)}</span>
+          <span>{moveLabel(card.move)}</span>
         </div>
 
         <div className="metaRow">
           <span>◎ {hitLabel(card.hit)}</span>
-          <span>✶ {keywordLabel(card)}</span>
+          <span>{keywordLabel(card)}</span>
         </div>
-
-        <div className="cardPeek">{cardReminder(card)}</div>
       </button>
     );
   };
 
   const currentHand = phase === 'keep' ? state.fighters.player.draw : state.fighters.player.hand;
-
   const selectedCount = phase === 'keep' ? selectedKeep.length : selectedBeatCard ? 1 : 0;
+  const focusedCard = focusedCardId ? getCard(focusedCardId) : null;
 
   return (
     <main className="app">
       <section className="duelStage">
         <div className="stageTopline">
-          <span className="stageChip">Stormlit Courtyard</span>
           <span className="stageChip stageStatus">{duelStatus(state)}</span>
+          <button className="helpButton" onClick={() => setHelpOpen((prev) => !prev)}>
+            ? Help
+          </button>
           <label className="fastResolveToggle">
             <input
               type="checkbox"
@@ -236,7 +302,7 @@ export function App() {
                 setState({ ...state });
               }}
             />
-            Fast
+            Fast Resolve
           </label>
         </div>
 
@@ -244,6 +310,9 @@ export function App() {
           {actorStatus('ai')}
 
           <div className="rangeTotem" role="status" aria-live="polite">
+            <button className="miniInfoChip" onClick={() => openHelp('Hit')}>
+              Range
+            </button>
             <div className="rangeReadout">
               {rangeBands.map((band) => (
                 <span key={band} className={`stone ${state.range === band ? 'active' : ''}`}>
@@ -252,9 +321,7 @@ export function App() {
               ))}
             </div>
             <strong>{state.range}</strong>
-            <small>
-              Beat {state.beat}/3
-            </small>
+            <small>Beat {state.beat}/3</small>
           </div>
 
           {actorStatus('player')}
@@ -273,7 +340,7 @@ export function App() {
               <>
                 <strong>{lastCards.ai.name}</strong>
                 <small>
-                  {tagMeta[lastCards.ai.tags[0]].icon} ⚡{lastCards.ai.speed} · R{lastCards.ai.rank}
+                  {tagMeta[lastCards.ai.tags[0]].icon} · ⚡{lastCards.ai.speed} · R{lastCards.ai.rank}
                 </small>
               </>
             ) : (
@@ -282,8 +349,8 @@ export function App() {
           </article>
 
           <div className="clashPulse">
-            <span>{firstResolver}</span>
-            {latestLog && <small>{latestLog.events.slice(0, 2).join(' · ')}</small>}
+            <span>{clashSummary}</span>
+            {latestLog && latestLog.events[0] && <small>{latestLog.events[0]}</small>}
           </div>
 
           <article className="revealPane player">
@@ -291,7 +358,7 @@ export function App() {
               <>
                 <strong>{lastCards.player.name}</strong>
                 <small>
-                  {tagMeta[lastCards.player.tags[0]].icon} ⚡{lastCards.player.speed} · R{lastCards.player.rank}
+                  {tagMeta[lastCards.player.tags[0]].icon} · ⚡{lastCards.player.speed} · R{lastCards.player.rank}
                 </small>
               </>
             ) : (
@@ -299,14 +366,6 @@ export function App() {
             )}
           </article>
         </div>
-
-        {latestLog && (
-          <ul className="eventRibbon">
-            {latestLog.events.slice(0, 3).map((event, i) => (
-              <li key={`${event}-${i}`}>{event}</li>
-            ))}
-          </ul>
-        )}
       </section>
 
       {phase !== 'end' && (
@@ -349,6 +408,57 @@ export function App() {
           <button className="primaryButton" onClick={restart}>
             Start New Duel
           </button>
+        </section>
+      )}
+
+      {focusedCard && (
+        <section className="overlayBackdrop" onClick={() => setFocusedCardId(null)} role="dialog" aria-modal="true">
+          <article className="cardDetailPanel" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <h3>{focusedCard.name}</h3>
+              <button onClick={() => setFocusedCardId(null)}>Close</button>
+            </header>
+
+            <p className="detailMeta">
+              {tagMeta[focusedCard.tags[0]].icon} {focusedCard.tags.join(' / ')} · ⚡{focusedCard.speed} · Rank {focusedCard.rank}
+            </p>
+
+            <div className="detailGrid">
+              <p>
+                <strong>Effect:</strong> Deal {focusedCard.damage} damage, gain {focusedCard.guard} guard, and {moveLabel(focusedCard.move).toLowerCase()}.
+              </p>
+              <p>
+                <strong>Hit:</strong> This card can hit at <em>{hitLabel(focusedCard.hit)}</em> range.
+              </p>
+              <p>
+                <strong>Keyword:</strong> {keywordLabel(focusedCard)} — {keywordExplanation(focusedCard)}
+              </p>
+              {(focusedCard.cashOutFlow || focusedCard.flowDamageBonus || focusedCard.reduceEnemyFlow || focusedCard.arm) && (
+                <p>
+                  <strong>Flow / Armed:</strong> This card has flow-related timing. Use <em>? Help</em> for exact term definitions.
+                </p>
+              )}
+            </div>
+          </article>
+        </section>
+      )}
+
+      {helpOpen && (
+        <section className="overlayBackdrop" onClick={() => setHelpOpen(false)} role="dialog" aria-modal="true">
+          <article className="helpPanel" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <h3>Combat Glossary</h3>
+              <button onClick={() => setHelpOpen(false)}>Close</button>
+            </header>
+            <ul>
+              {termGlossary.map((entry) => (
+                <li key={entry.term} className={focusTerm === entry.term ? 'focused' : ''}>
+                  <strong>{entry.term}</strong>
+                  <p>{entry.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
         </section>
       )}
     </main>
