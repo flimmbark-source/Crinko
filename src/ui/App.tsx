@@ -65,7 +65,6 @@ export function App() {
   const [state, setState] = useState<DuelState>(() => initDuel(Date.now()));
   const [selectedKeep, setSelectedKeep] = useState<string[]>([]);
   const [selectedBeatCard, setSelectedBeatCard] = useState<string | null>(null);
-  const [inspectedCard, setInspectedCard] = useState<string | null>(null);
   const [postReward, setPostReward] = useState<string | null>(null);
 
   const phase = useMemo(() => {
@@ -96,7 +95,6 @@ export function App() {
     keepCards(state, selectedKeep, aiKeep);
     setState({ ...state });
     setSelectedBeatCard(null);
-    setInspectedCard(null);
   };
 
   const onResolveBeat = () => {
@@ -111,7 +109,6 @@ export function App() {
     setState(initDuel(Date.now()));
     setSelectedKeep([]);
     setSelectedBeatCard(null);
-    setInspectedCard(null);
     setPostReward(null);
   };
 
@@ -156,17 +153,9 @@ export function App() {
   const renderCard = (cardId: string, selected: boolean, onClick: () => void) => {
     const card = getCard(cardId);
     const leadTag = card.tags[0];
-    const isExpanded = inspectedCard === cardId;
 
     return (
-      <button
-        className={`techCard tag${leadTag} ${selected ? 'selected' : ''} ${isExpanded ? 'expanded' : ''}`}
-        key={cardId}
-        onClick={onClick}
-        onMouseEnter={() => setInspectedCard(cardId)}
-        onFocus={() => setInspectedCard(cardId)}
-        onMouseLeave={() => setInspectedCard((prev) => (prev === cardId ? null : prev))}
-      >
+      <button className={`techCard tag${leadTag} ${selected ? 'selected' : ''}`} key={cardId} onClick={onClick}>
         <div className="cardTopBar">
           <div className="nameBlock">
             <span className="tagBadge">
@@ -194,13 +183,6 @@ export function App() {
           <span>◎ {hitLabel(card.hit)}</span>
           <span>✶ {keywordLabel(card)}</span>
         </div>
-
-        {isExpanded && (
-          <div className="expandedText">
-            <p>Tags: {card.tags.join(' · ')}</p>
-            {card.arm && <p>Armed: {card.arm.name}</p>}
-          </div>
-        )}
       </button>
     );
   };
@@ -210,11 +192,21 @@ export function App() {
   return (
     <main className="app">
       <section className="duelStage">
-        <header className="stageTopline">
-          <p>Stormlit Courtyard</p>
-          <h1>Samurai Card Duel</h1>
-          <span>{flowLabel(state)}</span>
-        </header>
+        <div className="stageTopline">
+          <span className="stageChip">Stormlit Courtyard</span>
+          <span className="stageChip stageStatus">{flowLabel(state)}</span>
+          <label className="fastResolveToggle">
+            <input
+              type="checkbox"
+              checked={state.fastResolve}
+              onChange={(e) => {
+                state.fastResolve = e.target.checked;
+                setState({ ...state });
+              }}
+            />
+            Fast Resolve
+          </label>
+        </div>
 
         <div className="sceneField">
           {actorStatus('ai')}
@@ -229,17 +221,6 @@ export function App() {
               ))}
             </div>
             <small>Beat {state.beat} / 3</small>
-            <label className="fastResolveToggle">
-              <input
-                type="checkbox"
-                checked={state.fastResolve}
-                onChange={(e) => {
-                  state.fastResolve = e.target.checked;
-                  setState({ ...state });
-                }}
-              />
-              Fast Resolve
-            </label>
           </div>
 
           {actorStatus('player')}
