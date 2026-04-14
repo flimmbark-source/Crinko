@@ -25,7 +25,17 @@ function tagIcon(tag: Tag): string {
 }
 
 function flavorForSchool(school: string): string {
-  return school === 'Stone' ? 'Unmoving form, crushing finish.' : 'Stormlight footwork, cutting reads.';
+  return school === 'Stone' ? 'Stone discipline. Endure, then break steel.' : 'Wind school. Read intent and cut first.';
+}
+
+function schoolFromPassive(passive: 'stone' | 'wind'): 'Stone' | 'Wind' {
+  return passive === 'stone' ? 'Stone' : 'Wind';
+}
+
+function flowLabel(state: DuelState): string {
+  if (state.winner) return labelWinner(state);
+  if (state.fighters.player.hand.length === 0) return 'Choose three techniques to begin the exchange.';
+  return `Beat ${state.beat} — simultaneous reveal pending.`;
 }
 
 export function App() {
@@ -47,6 +57,15 @@ export function App() {
         ai: getCard(latestLog.cards.ai)
       }
     : null;
+
+  const firstResolver = useMemo(() => {
+    if (!lastCards) return 'Awaiting first clash';
+    if (lastCards.player.speed === lastCards.ai.speed) {
+      return state.fighters.player.initiative ? 'You acted first (initiative tie-break)' : 'Rival acted first (initiative tie-break)';
+    }
+
+    return lastCards.player.speed < lastCards.ai.speed ? 'You acted first (lower speed)' : 'Rival acted first (lower speed)';
+  }, [lastCards, state.fighters.player.initiative]);
 
   const onStartExchange = () => {
     const aiKeep = chooseAiKeep(state);
@@ -82,32 +101,29 @@ export function App() {
     const fighter = state.fighters[id];
     const foe = id === 'player' ? state.fighters.ai : state.fighters.player;
     const hpPct = Math.max(0, (fighter.hp / 20) * 100);
-    const isLead = fighter.hp > foe.hp;
+    const school = schoolFromPassive(fighter.passive);
 
     return (
-      <article className={`combatantPanel ${id === 'player' ? 'isPlayer' : 'isEnemy'}`}>
-        <div className="panelFrame">
-          <div className="portrait" aria-hidden>
-            <span>{fighter.school === 'Stone' ? '⛰' : '風'}</span>
+      <article className={`duelist ${id === 'player' ? 'isPlayer' : 'isEnemy'}`}>
+        <div className="duelistFigure" aria-hidden>
+          <div className="duelistHalo" />
+          <div className="duelistBody">{school === 'Stone' ? '⛰' : '風'}</div>
+        </div>
+        <div className="duelistHud">
+          <div className="duelistHead">
+            <h2>{id === 'player' ? 'You' : 'Rival'}</h2>
+            <span className="duelistSchool">{school}</span>
           </div>
-          <div className="combatantMeta">
-            <div className="nameRow">
-              <h2>{id === 'player' ? 'You' : 'Rival'}</h2>
-              <span className="schoolBadge">{fighter.school}</span>
-            </div>
-            <p className="schoolFlavor">{flavorForSchool(fighter.school)}</p>
-            <div className="hpTrack" role="img" aria-label={`${id} hp ${fighter.hp} out of 20`}>
-              <div className="hpFill" style={{ width: `${hpPct}%` }} />
-              <span>{fighter.hp} / 20</span>
-            </div>
-            <div className="tokens">
-              <span className={`token ${fighter.initiative ? 'active' : ''}`}>Initiative</span>
-              <span className="token">Flow {fighter.flow}</span>
-              <span className={`token armed ${fighter.armed ? 'active' : ''}`}>
-                {fighter.armed ? `Armed: ${fighter.armed.name}` : 'Armed: —'}
-              </span>
-              <span className={`token ${isLead ? 'active' : ''}`}>{isLead ? 'Pressing' : 'Under Pressure'}</span>
-            </div>
+          <p>{flavorForSchool(school)}</p>
+          <div className="hpRail" role="img" aria-label={`${id} hp ${fighter.hp} out of 20`}>
+            <div className="hpNow" style={{ width: `${hpPct}%` }} />
+            <span>{fighter.hp} / 20</span>
+          </div>
+          <div className="duelistChips">
+            <span className={`hudChip ${fighter.initiative ? 'active' : ''}`}>Initiative</span>
+            <span className="hudChip">Flow {fighter.flow}</span>
+            <span className={`hudChip ${fighter.armed ? 'active armed' : ''}`}>{fighter.armed ? `Armed: ${fighter.armed.name}` : 'Armed: —'}</span>
+            <span className={`hudChip ${fighter.hp >= foe.hp ? 'active' : ''}`}>{fighter.hp >= foe.hp ? 'Advantage' : 'Pressed'}</span>
           </div>
         </div>
       </article>
@@ -117,48 +133,58 @@ export function App() {
   const renderCard = (cardId: string, selected: boolean, onClick: () => void) => {
     const card = getCard(cardId);
     return (
-      <button className={`duelCard ${selected ? 'selected' : ''}`} key={cardId} onClick={onClick}>
-        <div className="cardTop">
-          <span className="rankPip">{card.rank}</span>
-          <strong>{card.name}</strong>
-          <span className="speedPip">SPD {card.speed}</span>
+      <button className={`techCard ${selected ? 'selected' : ''}`} key={cardId} onClick={onClick}>
+        <div className="cardCrest">
+          <span className="medallion rank">{card.rank}</span>
+          <span className="medallion speed">SPD {card.speed}</span>
         </div>
-        <div className="tagRow">
+        <header className="cardName">{card.name}</header>
+        <div className="chipCluster">
           {card.tags.map((tag) => (
-            <span key={tag} className="tagChip">
+            <span key={tag} className="miniChip">
               {tagIcon(tag)} {tag}
             </span>
           ))}
         </div>
-        <div className="cardStats">
+        <div className="cardNumbers">
           <span>DMG {card.damage}</span>
           <span>GRD {card.guard}</span>
           <span>MOV {card.move}</span>
         </div>
-        <div className="cardBottom">
-          <span className="hitLine">Hit: {card.hit === 'MidOrFar' ? 'Mid or Far' : card.hit}</span>
-          <span className="flowLine">Flow: {card.cashOutFlow ? 'Cash Out' : card.flowDamageBonus ? 'Boost' : card.reduceEnemyFlow ? `Disrupt ${card.reduceEnemyFlow}` : '—'}</span>
-        </div>
+        <footer className="cardLore">
+          <p>Hit band: {card.hit === 'MidOrFar' ? 'Mid or Far' : card.hit}</p>
+          <p>
+            Flow:{' '}
+            {card.cashOutFlow
+              ? 'Cash out'
+              : card.flowDamageBonus
+                ? `Bonus +${card.flowDamageBonus}`
+                : card.reduceEnemyFlow
+                  ? `Disrupt ${card.reduceEnemyFlow}`
+                  : 'Stable'}
+          </p>
+        </footer>
       </button>
     );
   };
 
   return (
     <main className="app">
-      <section className="duelScene">
-        <header className="sceneHeader">
-          <p className="sceneSubtitle">Shrouded Courtyard Duel</p>
+      <section className="duelStage">
+        <header className="stageTopline">
+          <p>Stormlit Courtyard • Exchange {state.exchange}</p>
           <h1>Samurai Card Duel</h1>
-          <div className="battleMeta">Exchange {state.exchange} • Beat {state.beat} • Simultaneous Reveal</div>
+          <span>{flowLabel(state)}</span>
         </header>
 
-        <div className="fightersRow">
+        <div className="sceneField">
           {actorStatus('ai')}
-          <div className="rangeBanner" role="status" aria-live="polite">
-            <span className="rangeLabel">Shared Range</span>
-            <div className="rangeTrack">
+
+          <div className="rangeTotem" role="status" aria-live="polite">
+            <p>Shared Range</p>
+            <div className="rangeStones">
               {rangeBands.map((band) => (
-                <span key={band} className={`rangeNode ${state.range === band ? 'active' : ''}`}>
+                <span key={band} className={`stone ${state.range === band ? 'active' : ''}`}>
                   {band}
                 </span>
               ))}
@@ -175,67 +201,77 @@ export function App() {
               Fast Resolve
             </label>
           </div>
+
           {actorStatus('player')}
         </div>
+      </section>
 
-        <section className="revealLane" aria-live="polite">
-          <div className="laneHeader">
-            <h3>Clash Lane</h3>
-            <span>{latestLog ? `Resolved beat ${latestLog.beat}` : 'Awaiting first reveal'}</span>
+      <section className="clashLane" aria-live="polite">
+        <div className="laneTitle">
+          <h3>Clash Reveal Lane</h3>
+          <span>{latestLog ? `Resolved beat ${latestLog.beat}` : 'No revealed cards yet'}</span>
+        </div>
+
+        <div className="clashCore">
+          <article className="revealPane enemy">
+            <h4>Rival Reveal</h4>
+            {lastCards ? (
+              <>
+                <strong>{lastCards.ai.name}</strong>
+                <small>
+                  Rank {lastCards.ai.rank} · Speed {lastCards.ai.speed}
+                </small>
+              </>
+            ) : (
+              <small className="placeholder">Hidden technique</small>
+            )}
+          </article>
+
+          <div className="clashPulse">
+            <span>⚡</span>
+            <p>{firstResolver}</p>
           </div>
-          <div className="clashCards">
-            <article className="revealedCard">
-              <h4>Enemy Reveal</h4>
-              {lastCards ? (
-                <>
-                  <p>{lastCards.ai.name}</p>
-                  <small>Rank {lastCards.ai.rank} • SPD {lastCards.ai.speed}</small>
-                </>
-              ) : (
-                <p className="placeholder">Unknown technique</p>
-              )}
-            </article>
-            <div className="clashCenter">
-              <span>⚡</span>
-              <small>{latestLog ? latestLog.events[0] : 'Select a card to force the clash.'}</small>
-            </div>
-            <article className="revealedCard isPlayer">
-              <h4>Your Reveal</h4>
-              {lastCards ? (
-                <>
-                  <p>{lastCards.player.name}</p>
-                  <small>Rank {lastCards.player.rank} • SPD {lastCards.player.speed}</small>
-                </>
-              ) : (
-                <p className="placeholder">Ready your first technique</p>
-              )}
-            </article>
-          </div>
-          {latestLog && (
-            <ul className="eventStrip">
-              {latestLog.events.slice(0, 4).map((event, i) => (
-                <li key={`${event}-${i}`}>{event}</li>
-              ))}
-            </ul>
-          )}
-        </section>
+
+          <article className="revealPane player">
+            <h4>Your Reveal</h4>
+            {lastCards ? (
+              <>
+                <strong>{lastCards.player.name}</strong>
+                <small>
+                  Rank {lastCards.player.rank} · Speed {lastCards.player.speed}
+                </small>
+              </>
+            ) : (
+              <small className="placeholder">Choose and reveal</small>
+            )}
+          </article>
+        </div>
+
+        {latestLog && (
+          <ul className="eventRibbon">
+            {latestLog.events.slice(0, 5).map((event, i) => (
+              <li key={`${event}-${i}`}>{event}</li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {phase === 'keep' && (
-        <section className="panel handPanel">
-          <div className="panelHeader">
-            <h2>Choose 3 of 5 Techniques</h2>
-            <span>Selected: {selectedKeep.length} / 3</span>
+        <section className="handZone">
+          <div className="handHeader">
+            <h2>Draft Your Three Techniques</h2>
+            <span>{selectedKeep.length} / 3 selected</span>
           </div>
-          <div className="handGrid keepPhase">
-            {state.fighters.player.draw.map((id) => renderCard(id, selectedKeep.includes(id), () => pickKeep(id)))}
+
+          <div className="preparedTechniques">
+            <p>Prepared Row</p>
+            <div>
+              {selectedKeep.length > 0 ? selectedKeep.map((id) => <em key={id}>{getCard(id).name}</em>) : <small>No techniques prepared yet.</small>}
+            </div>
           </div>
-          <div className="preparedRow">
-            <span>Prepared:</span>
-            {selectedKeep.map((id) => (
-              <em key={id}>{getCard(id).name}</em>
-            ))}
-          </div>
+
+          <div className="handRail keep">{state.fighters.player.draw.map((id) => renderCard(id, selectedKeep.includes(id), () => pickKeep(id)))}</div>
+
           <button className="primaryButton" disabled={selectedKeep.length !== 3} onClick={onStartExchange}>
             Lock Techniques
           </button>
@@ -243,24 +279,33 @@ export function App() {
       )}
 
       {phase === 'battle' && (
-        <section className="panel handPanel">
-          <div className="panelHeader">
-            <h2>Choose Technique for Beat {state.beat}</h2>
-            <span>{state.fighters.player.hand.length} techniques remain</span>
+        <section className="handZone">
+          <div className="handHeader">
+            <h2>Hand of Techniques</h2>
+            <span>Beat {state.beat} • {state.fighters.player.hand.length} left</span>
           </div>
-          <div className="handGrid battlePhase">
+
+          <div className="preparedTechniques">
+            <p>Prepared Strike</p>
+            <div>
+              {selectedBeatCard ? <em>{getCard(selectedBeatCard).name}</em> : <small>Select one technique to reveal.</small>}
+            </div>
+          </div>
+
+          <div className="handRail battle">
             {state.fighters.player.hand.map((id) =>
               renderCard(id, selectedBeatCard === id, () => {
                 setSelectedBeatCard(id);
               })
             )}
           </div>
+
           <button className="primaryButton revealButton" disabled={!selectedBeatCard} onClick={onResolveBeat}>
             Reveal Simultaneously
           </button>
 
-          <details className="combatLog" open>
-            <summary>Battle Transcript</summary>
+          <details className="combatLog">
+            <summary>Transcript</summary>
             {state.logs.slice(0, 5).map((log, i) => (
               <article key={`${log.beat}-${i}`}>
                 <p>
@@ -278,7 +323,7 @@ export function App() {
       )}
 
       {phase === 'end' && (
-        <section className="panel endPanel">
+        <section className="endPanel">
           <h2>{labelWinner(state)}</h2>
           <p>Choose one post-duel reward:</p>
           <div className="rewards">
