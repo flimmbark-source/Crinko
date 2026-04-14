@@ -273,28 +273,12 @@ button {
     linear-gradient(90deg, rgba(98, 56, 35, 0.2), rgba(27, 35, 47, 0.2));
 }
 
-.laneTitle {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
-}
-
-.laneTitle h3 {
-  margin: 0;
-  font-size: 0.8rem;
-}
-
-.laneTitle span {
-  font-size: 0.62rem;
-  color: #c8af90;
-}
-
 .clashCore {
   display: grid;
   grid-template-columns: 1fr 124px 1fr;
   gap: 6px;
   align-items: stretch;
+  height: 100%;
 }
 
 .revealPane {
@@ -342,7 +326,7 @@ button {
 }
 
 .clashPulse span {
-  font-size: 0.65rem;
+  font-size: 0.69rem;
   color: #ffe2bb;
 }
 
@@ -399,7 +383,7 @@ button {
     linear-gradient(180deg, rgba(63, 44, 28, 0.16), rgba(18, 24, 34, 0.9) 42%),
     linear-gradient(180deg, rgba(11, 14, 20, 0.94), rgba(8, 10, 15, 0.96));
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  grid-template-rows: auto auto 1fr auto;
   gap: 6px;
   transition: transform 130ms ease, border-color 130ms ease;
   flex: 0 0 auto;
@@ -428,7 +412,7 @@ button {
 }
 
 .cardTopBar strong {
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.15;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -458,7 +442,7 @@ button {
 
 .tagBadge,
 .pillButton {
-  font-size: 0.68rem;
+  font-size: 0.71rem;
   border-radius: 999px;
   padding: 2px 7px;
   border: 1px solid rgba(231, 206, 171, 0.35);
@@ -475,31 +459,23 @@ button {
 }
 
 .motifArea span {
-  font-size: 1.55rem;
+  font-size: 1.82rem;
   letter-spacing: 0.18em;
   color: rgba(242, 220, 187, 0.9);
 }
 
-.statRow,
-.metaRow {
-  display: grid;
+.cardFacts {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  align-items: flex-end;
 }
 
-.statRow {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.metaRow {
-  grid-template-columns: 1fr 1fr;
-}
-
-.statRow span,
-.metaRow span {
-  font-size: 0.72rem;
+.factChip {
+  font-size: 0.76rem;
   border-radius: 999px;
   border: 1px solid rgba(234, 202, 163, 0.3);
-  padding: 3px 4px;
+  padding: 3px 7px;
   text-align: center;
   background: rgba(20, 15, 12, 0.35);
 }
@@ -658,8 +634,7 @@ button {
 
   .tagBadge,
   .pillButton,
-  .statRow span,
-  .metaRow span {
+  .factChip {
     font-size: 0.58rem;
   }
 
